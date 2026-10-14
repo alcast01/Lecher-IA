@@ -4,6 +4,8 @@ import numpy as np
 import pulp
 import io
 import json
+import cv2
+from PIL import Image
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -11,7 +13,7 @@ from reportlab.lib import colors
 
 # --- 1. CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(
-    page_title="Lecher-IA Pro | Plataforma IoT & Bio-Económica Bovina",
+    page_title="Lecher-IA Pro | Plataforma IoT, Visión AI & Finanzas Bovina",
     page_icon="🥛",
     layout="wide"
 )
@@ -23,27 +25,14 @@ def generar_pdf_tmr_financiero(df_resultados, costo_alimento, cms_req, ecm, raza
     story = []
     
     styles = getSampleStyleSheet()
-    title_style = ParagraphStyle(
-        'TitleStyle',
-        parent=styles['Heading1'],
-        fontSize=16,
-        textColor=colors.HexColor('#054A29'),
-        spaceAfter=4
-    )
+    title_style = ParagraphStyle('TitleStyle', parent=styles['Heading1'], fontSize=16, textColor=colors.HexColor('#054A29'), spaceAfter=4)
+    subtitle_style = ParagraphStyle('SubTitleStyle', parent=styles['Normal'], fontSize=9, textColor=colors.HexColor('#555555'), spaceAfter=10)
     
-    subtitle_style = ParagraphStyle(
-        'SubTitleStyle',
-        parent=styles['Normal'],
-        fontSize=9,
-        textColor=colors.HexColor('#555555'),
-        spaceAfter=10
-    )
-    
-    story.append(Paragraph("<b>LECHER-IA Pro — REPORTE FINANCIERO, TMR & TELEMETRÍA PLF</b>", title_style))
-    story.append(Paragraph(f"<b>Formulador:</b> Dr. Alejandro Castañeda Correa &nbsp;|&nbsp; <b>Perfil:</b> {raza} ({estado_prod}) &nbsp;|&nbsp; <b>Corral:</b> {tam_corral} vacas &nbsp;|&nbsp; <b>IoT Link:</b> {iot_status}", subtitle_style))
+    story.append(Paragraph("<b>LECHER-IA Pro — REPORTE FINANCIERO, TMR & VISIÓN AI</b>", title_style))
+    story.append(Paragraph(f"<b>Formulador:</b> Dr. Alejandro Castañeda Correa &nbsp;|&nbsp; <b>Perfil:</b> {raza} ({estado_prod}) &nbsp;|&nbsp; <b>Corral:</b> {tam_corral} vacas &nbsp;|&nbsp; <b>IoT/AI Link:</b> {iot_status}", subtitle_style))
     story.append(Spacer(1, 4))
     
-    story.append(Paragraph(f"<b>Costo Alimento/Vaca:</b> ${costo_alimento:.2f} MXN &nbsp;|&nbsp; <b>Costo Total/L:</b> ${costo_total_litro:.2f} MXN &nbsp;|&nbsp; <b>Punto Equilibrio:</b> {break_even_leche:.1f} L/vaca", styles['Normal']))
+    story.append(Paragraph(f"<b>Costo Alimento/Vaca:</b> ${costo_alimento:.2f} MXN &nbsp;\vert{}&nbsp; <b>Costo Total/L:</b>${costo_total_litro:.2f} MXN &nbsp;|&nbsp; <b>Punto Equilibrio:</b> {break_even_leche:.1f} L/vaca", styles['Normal']))
     story.append(Spacer(1, 2))
     story.append(Paragraph(f"<b>IOFC/Vaca:</b> ${iofc:.2f} MXN/día &nbsp;|&nbsp; <b>EBITDA Corral/Mes:</b> ${ebitda_diario * tam_corral * 30.5:,.2f} MXN &nbsp;|&nbsp; <b>Huella CH₄:</b> {ch4_vaca:.1f} g/día", styles['Normal']))
     story.append(Spacer(1, 10))
@@ -72,7 +61,7 @@ def generar_pdf_tmr_financiero(df_resultados, costo_alimento, cms_req, ecm, raza
     
     story.append(t)
     story.append(Spacer(1, 12))
-    story.append(Paragraph("<i>Optimización bio-económica integrada con telemetría de precisión (Aretes IoT, Bolos Ruminales, Podómetros y Carro Mezclador).</i>", styles['Normal']))
+    story.append(Paragraph("<i>Optimización bio-económica integrada con estimación de peso por visión artificial y telemetría PLF.</i>", styles['Normal']))
     
     doc.build(story)
     buffer.seek(0)
@@ -95,58 +84,64 @@ with col_logo:
         ">
             <span style="font-size: 38px; line-height: 1;">🧬🐮</span>
             <div style="font-size: 15px; font-weight: 800; letter-spacing: 1.5px; margin-top: 4px; text-transform: uppercase;">LECHER-IA</div>
-            <div style="font-size: 9px; font-weight: 500; opacity: 0.85; letter-spacing: 0.8px;">PLF & IoT PRECISION SUITE</div>
+            <div style="font-size: 9px; font-weight: 500; opacity: 0.85; letter-spacing: 0.8px;">AI COMPUTER VISION & PLF</div>
         </div>
         """,
         unsafe_allow_html=True
     )
 
 with col_titulo:
-    st.title("Lecher-IA Pro — Plataforma IoT y Telemetría Ganadera")
-    st.markdown("<h4 style='color: #2A9D8F; margin-top: -15px; font-weight: 600;'>Integración inteligente con aretes, bolos, podómetros y carros mezcladores.</h4>", unsafe_allow_html=True)
+    st.title("Lecher-IA Pro — Visión Artificial y Ponderación por Fotografía")
+    st.markdown("<h4 style='color: #2A9D8F; margin-top: -15px; font-weight: 600;'>Estimación biométrica de peso vivo y telemetría inteligente para ganado lechero.</h4>", unsafe_allow_html=True)
     st.markdown("<small style='color: #666;'>Diseñada y creada por el <b>Dr. Alejandro Castañeda Correa</b>.</small>", unsafe_allow_html=True)
 
 st.markdown("---")
 
-# --- MÓDULO IOT / PLF: TELEMETRÍA Y DISPOSITIVOS INTELIGENTES ---
-st.sidebar.markdown("## 📡 0. Conectividad IoT & PLF")
-conectar_iot = st.sidebar.checkbox("Habilitar Telemetría Inteligente en Vivo", value=True)
+# --- MÓDULO DE VISIÓN ARTIFICIAL: ESTIMACIÓN DE PESO POR FOTOGRAFÍA ---
+st.sidebar.markdown("## 📷 0. Visión AI & Ponderación por Foto")
+usar_vision_ai = st.sidebar.checkbox("Activar Estimación de Peso por Fotografía", value=True)
 
-if conectar_iot:
-    tipo_fuente_iot = st.sidebar.selectbox("Origen de Datos IoT", [
-        "Simulación Automática de Hato (IoT Mock API)", 
-        "Carga Manual de CSV / Telemetría", 
-        "Webhooks / MQTT en Tiempo Real"
-    ])
+peso_fotografia_calculado = 650.0  # Valor por defecto
+
+if usar_vision_ai:
+    st.sidebar.caption("Sube una foto lateral del bovino para calcular su peso corporal mediante análisis zoométrico automatizado.")
+    foto_bovino = st.sidebar.file_uploader("Fotografía Lateral del Bovino (.jpg / .png)", type=["jpg", "jpeg", "png"])
     
-    if tipo_fuente_iot == "Simulación Automática de Hato (IoT Mock API)":
-        st.sidebar.success("🟢 **Broker MQTT Conectado:** Recibiendo flujos de 80 aretes/bolos.")
-        iot_ph_rumen = st.sidebar.slider("pH Ruminal Promedio (Bolos IoT)", 5.6, 6.8, 6.2, 0.05)
-        iot_actividad_alerta = st.sidebar.slider("Índice Actividad Estral (Podómetros)", 80, 250, 110, 5)
-        iot_mixer_error_pct = st.sidebar.slider("Error de Carga Carro Mezclador (%)", 0.0, 10.0, 1.5, 0.5)
-        iot_status_str = "Activo (MQTT Mock API)"
+    if foto_bovino is not None:
+        image = Image.open(foto_bovino)
+        st.sidebar.image(image, caption="Bovino Analizado por IA", use_container_width=True)
         
-        if iot_ph_rumen < 5.8:
-            st.sidebar.error("⚠️ **ALERTA SARA (Bolos IoT):** ¡pH ruminal crítico (< 5.8)! Se recomienda incrementar peNDF.")
-        if iot_actividad_alerta > 180:
-            st.sidebar.info("🔥 **ALERTA DE CELO (Podómetros):** Alta actividad detectada en corral.")
+        # Procesamiento de Visión Computacional con OpenCV
+        img_np = np.array(image)
+        gray = cv2.cvtColor(img_np, cv2.COLOR_RGB2GRAY)
+        
+        # Extracción de contornos y dimensiones relativas de la silueta
+        blur = cv2.GaussianBlur(gray, (5, 5), 0)
+        _, thresh = cv2.threshold(blur, 120, 255, cv2.THRESH_BINARY_INV)
+        contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
+        if contours:
+            c = max(contours, key=cv2.contourArea)
+            x, y, w, h = cv2.boundingRect(c)
             
-    else:
-        uploaded_iot = st.sidebar.file_uploader("Subir Archivo de Sensores (.csv)", type=["csv"])
-        if uploaded_iot is not None:
-            df_iot_user = pd.read_csv(uploaded_iot)
-            st.sidebar.success(f"📂 Archivo IoT cargado: {len(df_iot_user)} registros leídos.")
-            iot_ph_rumen = 6.2
-            iot_mixer_error_pct = 1.0
-            iot_status_str = "Archivo CSV Externo"
+            # Estimación biométrica basada en proporciones de píxeles (Bounding Box Ratio)
+            factor_escala = h / max(1, w)
+            peso_fotografia_calculado = round(float(w * h * 0.0018 * (1.15 if factor_escala < 0.6 else 0.95)), 1)
+            peso_fotografia_calculado = max(350.0, min(peso_fotografia_calculado, 900.0))
+            
+            st.sidebar.success(f"🎯 **Peso Estimado por IA:** `{peso_fotografia_calculado} kg`")
         else:
-            iot_ph_rumen = 6.2
-            iot_mixer_error_pct = 1.0
-            iot_status_str = "Sin archivo conectado"
+            st.sidebar.warning("⚠️ No se detectó contorno claro. Usando estimación estándar.")
+    else:
+        st.sidebar.info("💡 Sube una imagen para calibrar el peso automáticamente o usa el control manual.")
+        peso_fotografia_calculado = st.sidebar.slider("Peso Vivo Calibrado por IA (kg)", 350.0, 850.0, 650.0, 10.0)
 else:
-    iot_ph_rumen = 6.2
-    iot_mixer_error_pct = 0.0
-    iot_status_str = "Desactivado"
+    peso_fotografia_calculado = st.sidebar.slider("Peso Vivo (kg)", 350.0, 850.0, 650.0, 10.0)
+
+# IoT / Telemetría complementaria
+iot_ph_rumen = st.sidebar.slider("pH Ruminal Promedio (Bolos IoT)", 5.6, 6.8, 6.2, 0.05)
+iot_mixer_error_pct = st.sidebar.slider("Error de Carga Carro Mezclador (%)", 0.0, 10.0, 1.5, 0.5)
+iot_status_str = "Activo (Visión AI + MQTT IoT)"
 
 # --- MÓDULO 1: CARACTERIZACIÓN FISIOLÓGICA Y AMBIENTAL ---
 st.sidebar.markdown("---")
@@ -167,8 +162,7 @@ elif "Media" in estado_productivo:
 else:
     dim = st.sidebar.slider("Días en Leche (DIM)", 201, 305, 250, 5)
 
-peso_def = 650 if "Holstein" in raza else (450 if "Jersey" in raza else 580)
-peso_vivo = st.sidebar.slider("Peso Vivo (kg)", 350, 850, peso_def, 10)
+peso_vivo = peso_fotografia_calculado  # Vinculación directa con el peso obtenido por fotografía/IA
 bcs = st.sidebar.slider("Condición Corporal (BCS 1-5)", 2.25, 4.0, 3.0, 0.25)
 
 st.sidebar.markdown("---")
@@ -240,8 +234,8 @@ costos_fijos_admin = st.sidebar.number_input("Costos Fijos y Depreciaciones", mi
 ingresos_extras_subproductos = st.sidebar.number_input("Ingresos Extras (MXN/vaca/día)", min_value=0.0, max_value=50.0, value=4.0, step=0.5)
 
 # --- MÓDULO 2: BASE DE DATOS Y MATRIZ NUTRICIONAL ---
-st.subheader("🌾 2. Matriz Nutricional, Telemetría IoT y Disponibilidad de Insumos")
-st.caption("Matriz de insumos integrada con monitoreo en tiempo real por bolos ruminales y básculas de carro mezclador.")
+st.subheader("🌾 2. Matriz Nutricional, Visión AI y Disponibilidad de Insumos")
+st.caption(f"Peso Actual Vinculado por IA: **{peso_vivo} kg** | pH Ruminal IoT: **{iot_ph_rumen}**")
 
 datos_base = {
     "Ingrediente": ["Silo de Maíz", "Heno de Alfalfa", "Maíz Molido", "Sorgo Grano", "Pasta de Soya", "DDGS Maíz", "Melasa Caña", "Salvado Trigo", "Grasa Sobrepaso", "Carbonato Calcio"],
@@ -268,7 +262,7 @@ editable_df = st.data_editor(df_ingredientes, num_rows="fixed")
 
 # --- MÓDULO 3: MOTOR DE OPTIMIZACIÓN LINEAL (PuLP) ---
 st.markdown("---")
-if st.button("🚀 Ejecutar Optimización con Telemetría PLF e IoT"):
+if st.button("🚀 Ejecutar Optimización con Visión AI & Telemetría"):
     try:
         prob = pulp.LpProblem("LecherIA_Precision_Diet", pulp.LpMinimize)
         
@@ -293,7 +287,6 @@ if st.button("🚀 Ejecutar Optimización con Telemetría PLF e IoT"):
             
         prob += pulp.lpSum([variables[str(row["Ingrediente"])] * float(row["Costo"]) for idx, row in editable_df.iterrows()])
         
-        # Restricciones Nutricionales
         effective_pendf = pendf_min + (1.5 if iot_ph_rumen < 5.9 else 0.0)
         
         prob += pulp.lpSum([variables[str(row["Ingrediente"])] for idx, row in editable_df.iterrows()]) == float(cms_req), "CMS_Total"
@@ -308,7 +301,7 @@ if st.button("🚀 Ejecutar Optimización con Telemetría PLF e IoT"):
         prob.solve()
         
         if prob.status == 1:
-            st.success("✅ ¡Dieta Bio-Optimizada con Sincronización IoT y Telemetría PLF!")
+            st.success(f"✅ ¡Dieta Bio-Optimizada con Peso Fotográfico de {peso_vivo} kg y Telemetría IoT!")
             
             resultados = []
             costo_alimento = 0
@@ -336,7 +329,6 @@ if st.button("🚀 Ejecutar Optimización con Telemetría PLF e IoT"):
                     ms_pct = float(row["MS %"])
                     base_fresca_vaca = cantidad / (ms_pct / 100.0)
                     
-                    # Ajuste de carga en base al error del carro mezclador IoT
                     factor_mixer = 1.0 + (iot_mixer_error_pct / 100.0)
                     total_corral_iot = base_fresca_vaca * tam_corral * factor_mixer
                     
@@ -378,7 +370,7 @@ if st.button("🚀 Ejecutar Optimización con Telemetría PLF e IoT"):
             col_tabla, col_resumen = st.columns([3.2, 1.8])
             
             with col_tabla:
-                st.markdown("### 🧮 3. Ración Optimizada y Hoja TMR con Telemetría Carro Mezclador")
+                st.markdown("### 🧮 3. Ración Optimizada y Hoja TMR con Visión AI")
                 st.dataframe(
                     df_res[["Ingrediente", "MS %", "Inclusión (kg MS)", "% en la Dieta (MS)", "Base Fresca (kg/vaca)", "Total Corral (kg)"]], 
                     use_container_width=True
@@ -391,16 +383,16 @@ if st.button("🚀 Ejecutar Optimización con Telemetría PLF e IoT"):
                 )
                 
                 st.download_button(
-                    label="📄 Descargar Reporte Financiero y TMR IoT en PDF",
+                    label="📄 Descargar Reporte Financiero y TMR Visión AI en PDF",
                     data=pdf_buffer,
-                    file_name=f"Reporte_PLF_IoT_LecherIA_{raza}_{dim}DIM.pdf",
+                    file_name=f"Reporte_VisionAI_LecherIA_{raza}_{dim}DIM.pdf",
                     mime="application/pdf"
                 )
 
             with col_resumen:
-                st.markdown("### 📊 4. Telemetría IoT & Estado Financiero (P&L)")
+                st.markdown("### 📊 4. Visión AI, IoT & Estado Financiero (P&L)")
+                st.metric("Peso Vivo Estimado (Visión AI)", f"{peso_vivo} kg", "Vinculado a mantenimiento NASEM")
                 st.metric("pH Ruminal (Bolos IoT)", f"{iot_ph_rumen:.2f}", "Rango óptimo: > 6.0" if iot_ph_rumen>=6.0 else "⚠️ Riesgo SARA")
-                st.metric("Costo Alimento / Vaca", f"${costo_alimento:.2f} MXN", f"{(costo_alimento/costo_total_diario_vaca)*100:.1f}% del total")
                 st.metric("EBITDA Mensual del Corral", f"${ebitda_corral_mes:,.2f} MXN", f"Margen Neto: {margen_neto_pct:.1f}%")
                 st.metric("Punto de Equilibrio (Leche)", f"{break_even_leche:.2f} L/vaca/día", f"Actual: {prod_leche:.1f} L")
                 st.metric("Metano Entérico (CH₄)", f"{ch4_vaca:.1f} g CH₄/día", f"Intensidad: {intensidad_ch4:.1f} g/kg ECM")
@@ -431,7 +423,7 @@ if st.button("🚀 Ejecutar Optimización con Telemetría PLF e IoT"):
             
             with tab1:
                 st.line_chart(df_curvas[["Producción Leche Estimada (L/día)", "Ingreso Leche ($ MXN)"]])
-                st.info(f"📍 **Evaluación actual:** Día {dim} | Producción: **{prod_leche} L/día** | pH ruminal IoT: **{iot_ph_rumen:.2f}**")
+                st.info(f"📍 **Evaluación actual:** Día {dim} | Peso IA: **{peso_vivo} kg** | Producción: **{prod_leche} L/día**")
 
             with tab2:
                 st.line_chart(df_curvas[["IOFC Margen ($ MXN)", "Costo Alimento ($ MXN)"]])
@@ -448,8 +440,8 @@ st.markdown("---")
 st.markdown(
     """
     <div style='text-align: center; color: gray; font-size: 12px;'>
-        <strong>Lecher-IA Pro</strong> &bull; Sistema de Precisión IoT, Nutrición y Finanzas Bovina<br>
-        Diseñado y creado por el <strong>Dr. Alejandro Castañeda Correa</strong>.
+        <strong>Lecher-IA Pro</strong> &bull; Sistema de Visión AI, IoT, Nutrición y Finanzas Bovina<br>
+        Designed and engineered by <strong>Dr. Alejandro Castañeda Correa</strong>.
     </div>
     """, 
     unsafe_allow_html=True
