@@ -214,7 +214,7 @@ datos_base = {
     "MP": [62.0, 115.0, 75.0, 70.0, 310.0, 190.0, 25.0, 110.0, 0.0, 0.0],
     "RDP": [5.5, 13.0, 3.5, 4.0, 28.0, 10.0, 4.0, 12.0, 0.0, 0.0],
     "RUP": [3.0, 5.0, 6.0, 6.5, 17.0, 18.0, 0.5, 4.0, 0.0, 0.0],
-    "PC": [8.5, 18.0, 9.0, 10.0, 48.0, 28.0, 4.5, 16.0, 0.0, 0.0],  # Proteína Cruda para cálculo de N
+    "PC": [8.5, 18.0, 9.0, 10.0, 48.0, 28.0, 4.5, 16.0, 0.0, 0.0],
     "FDN": [42.0, 40.0, 9.5, 12.0, 13.0, 39.0, 1.0, 39.0, 0.0, 0.0],
     "peNDF": [32.0, 36.0, 2.0, 3.0, 2.0, 8.0, 0.0, 10.0, 0.0, 0.0],
     "Almidon": [28.0, 2.0, 72.0, 68.0, 1.5, 5.0, 0.0, 20.0, 0.0, 0.0],
@@ -315,15 +315,12 @@ if st.button("🚀 Ejecutar Optimización Bio-Económica (BMMCO Engine)"):
             df_res = pd.DataFrame(resultados)
             
             # --- CÁLCULO ESTEQUIOMÉTRICO BMMCO (Metano y Nitrógeno) ---
-            # Estequiometría de metano entérico (Moe & Tyrrell / NASEM 2021):
-            # CH4 (g/día) = 34.07 * FDN_digestible + 18.56 * Almidón_digestible (aproximación basada en fermentación ruminal estequiométrica)
             ch4_vaca = (fdn_total_kg * 0.55 * 38.0) + ((starch_sum / 100.0 * cms_req) * 0.85 * 22.0)
-            intensidad_ch4 = ch4_vaca / ecm  # g CH4 / kg ECM
+            intensidad_ch4 = ch4_vaca / ecm
             
-            # Nitrógeno Excretado (g/día) = Nitrógeno Consumido - Nitrógeno Retenido en Leche
             n_consumido = pc_total_g / 6.25
             n_leche = (prod_leche * (pct_proteina / 100.0) * 1000.0) / 6.38
-            n_excretado = max(30.0, n_consumido - n_leche - 25.0) # Ajuste metabólico por heces y orina
+            n_excretado = max(30.0, n_consumido - n_leche - 25.0)
             
             # --- MÓDULO 4: KPIS Y ANALÍTICA BIOLÓGICA ---
             ingreso_leche = prod_leche * precio_leche
@@ -334,7 +331,12 @@ if st.button("🚀 Ejecutar Optimización Bio-Económica (BMMCO Engine)"):
             
             with col_tabla:
                 st.markdown("### 🧮 3. Ración Bio-Optimizada y Escala TMR de Campo")
-                st.dataframe(df_res[["Ingrediente", "MS %", "Inclusión (kg MS)", "% en la Dieta (MS)", "Base Fresca (kg/vaca)", f"Total Corral ({tam_corral} vacas)"]], use_container_width=True)
+                
+                # Renderizado corregido y dinámico del DataFrame
+                st.dataframe(
+                    df_res[["Ingrediente", "MS %", "Inclusión (kg MS)", "% en la Dieta (MS)", "Base Fresca (kg/vaca)", "Total Corral (kg)"]], 
+                    use_container_width=True
+                )
                 
                 pdf_buffer = generar_pdf_tmr(df_res, costo_total, cms_req, ecm, raza, estado_productivo, tam_corral, precio_leche, iofc, ch4_vaca, n_excretado)
                 st.download_button(
