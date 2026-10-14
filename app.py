@@ -4,7 +4,7 @@ import pulp
 
 # --- 1. CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(
-    page_title="Lecher-IA Pro | NASEM & JDS Standard",
+    page_title="Lecher-IA Pro",
     page_icon="🐄",
     layout="wide"
 )
@@ -18,7 +18,7 @@ with col_logo:
         <div style="background-color: #1B5E20; padding: 12px; border-radius: 12px; text-align: center; color: white;">
             <span style="font-size: 38px;">🔬🐄</span><br>
             <strong style="font-size: 12px; letter-spacing: 1px;">LECHER-IA</strong><br>
-            <span style="font-size: 8px; opacity: 0.9;">JDS / NASEM MODEL</span>
+            <span style="font-size: 8px; opacity: 0.9;">BIO-NUTRICIÓN</span>
         </div>
         """,
         unsafe_allow_html=True
@@ -26,7 +26,7 @@ with col_logo:
 
 with col_titulo:
     st.title("Lecher-IA Pro — Formulación Nutricional de Alta Precisión")
-    st.markdown("**Eslogan:** *Optimizando la precisión ruminal y la rentabilidad lechera a través de la ciencia.*")
+    st.markdown("*Optimizando la precisión ruminal y la rentabilidad lechera a través de la ciencia.*")
     st.markdown("<small style='color: #555;'>Diseñada y creada por el <b>Dr. Alejandro Castañeda Correa</b>.</small>", unsafe_allow_html=True)
 
 st.markdown("---")
@@ -71,7 +71,7 @@ st.markdown(f"""
 > **ECM (Leche Corregida):** `{ecm:.2f} kg/día` &bull; **CMS Estimado NASEM:** `{cms_estimado_nasem} kg MS/día` &bull; **Densidad Energética:** `{nel_req} Mcal/kg MS`
 """)
 
-# --- 4. BASE DE DATOS EXTENDIDA DE INGREDIENTES (JDS MATRIZ) ---
+# --- 4. BASE DE DATOS EXTENDIDA DE INGREDIENTES ---
 datos_base = {
     "Ingrediente": ["Silo de Maíz", "Heno de Alfalfa", "Maíz Molido", "Sorgo Grano", "Pasta de Soya", "DDGS Maíz", "Melasa Caña", "Salvado Trigo", "Grasa Sobrepaso", "Carbonato Calcio"],
     "Costo": [2.10, 4.20, 5.50, 4.90, 9.90, 7.20, 3.60, 4.60, 25.00, 1.80],
@@ -80,9 +80,9 @@ datos_base = {
     "RDP": [5.5, 13.0, 3.5, 4.0, 28.0, 10.0, 4.0, 12.0, 0.0, 0.0],              # % MS
     "RUP": [3.0, 5.0, 6.0, 6.5, 17.0, 18.0, 0.5, 4.0, 0.0, 0.0],               # % MS
     "FDN": [42.0, 40.0, 9.5, 12.0, 13.0, 39.0, 1.0, 39.0, 0.0, 0.0],            # % MS
-    "peNDF": [32.0, 36.0, 2.0, 3.0, 2.0, 8.0, 0.0, 10.0, 0.0, 0.0],              # % MS (Fibra Efectiva)
+    "peNDF": [32.0, 36.0, 2.0, 3.0, 2.0, 8.0, 0.0, 10.0, 0.0, 0.0],              # % MS
     "Almidon": [28.0, 2.0, 72.0, 68.0, 1.5, 5.0, 0.0, 20.0, 0.0, 0.0],          # % MS
-    "EE": [3.2, 2.1, 3.8, 3.1, 1.5, 9.5, 0.1, 4.0, 99.0, 0.0],                 # % MS (Grasa)
+    "EE": [3.2, 2.1, 3.8, 3.1, 1.5, 9.5, 0.1, 4.0, 99.0, 0.0],                 # % MS
     "Ca": [0.25, 1.40, 0.03, 0.04, 0.35, 0.15, 0.90, 0.12, 0.00, 38.0],          # % MS
     "P": [0.20, 0.25, 0.28, 0.29, 0.65, 0.75, 0.10, 0.95, 0.00, 0.02],           # % MS
     "Min_Inclusion": [4.0, 3.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
@@ -91,7 +91,7 @@ datos_base = {
 
 df_ingredientes = pd.DataFrame(datos_base)
 
-st.subheader("📋 Matriz Nutricional Completa de Ingredientes (Estándar JDS / NASEM)")
+st.subheader("📋 Matriz Nutricional Completa de Ingredientes")
 st.caption("Puedes modificar precios, aportes nutricionales y límites de inclusión directamente en la tabla.")
 editable_df = st.data_editor(df_ingredientes, num_rows="fixed")
 
@@ -113,25 +113,12 @@ if st.button("🚀 Ejecutar Optimización Avanzada de Dietas"):
         prob += pulp.lpSum([variables[str(row["Ingrediente"])] * float(row["Costo"]) for idx, row in editable_df.iterrows()])
         
         # RESTRICCIONES NUTRICIONALES Y METABÓLICAS
-        # 1. Consumo de Materia Seca (CMS)
         prob += pulp.lpSum([variables[str(row["Ingrediente"])] for idx, row in editable_df.iterrows()]) == float(cms_req), "CMS_Total"
-        
-        # 2. Energía Neta de Lactancia (NEL)
         prob += pulp.lpSum([variables[str(row["Ingrediente"])] * float(row["NEL"]) for idx, row in editable_df.iterrows()]) >= float(nel_req) * float(cms_req), "Min_NEL"
-        
-        # 3. Proteína Metabolizable (PM)
         prob += pulp.lpSum([variables[str(row["Ingrediente"])] * float(row["MP"]) for idx, row in editable_df.iterrows()]) >= float(mp_req_g), "Min_MP"
-        
-        # 4. Fibra Efectiva (peNDF)
         prob += pulp.lpSum([variables[str(row["Ingrediente"])] * (float(row["peNDF"]) / 100.0) for idx, row in editable_df.iterrows()]) >= (float(pendf_min) / 100.0) * float(cms_req), "Min_peNDF"
-        
-        # 5. Máximo Almidón (Prevención de SARA)
         prob += pulp.lpSum([variables[str(row["Ingrediente"])] * (float(row["Almidon"]) / 100.0) for idx, row in editable_df.iterrows()]) <= (float(starch_max) / 100.0) * float(cms_req), "Max_Starch"
-        
-        # 6. Máxima Grasa Total (EE)
         prob += pulp.lpSum([variables[str(row["Ingrediente"])] * (float(row["EE"]) / 100.0) for idx, row in editable_df.iterrows()]) <= (float(ee_max) / 100.0) * float(cms_req), "Max_EE"
-        
-        # 7. Minerales: Calcio (Ca) y Fósforo (P)
         prob += pulp.lpSum([variables[str(row["Ingrediente"])] * (float(row["Ca"]) / 100.0) for idx, row in editable_df.iterrows()]) >= (float(ca_min) / 100.0) * float(cms_req), "Min_Ca"
         prob += pulp.lpSum([variables[str(row["Ingrediente"])] * (float(row["P"]) / 100.0) for idx, row in editable_df.iterrows()]) >= (float(p_min) / 100.0) * float(cms_req), "Min_P"
         
@@ -198,7 +185,6 @@ st.markdown(
     """
     <div style='text-align: center; color: gray; font-size: 12px;'>
         <strong>Lecher-IA Pro</strong> &bull; Sistema Avanzado de Optimización Nutricional Bovina<br>
-        Basado en los estándares del <em>Journal of Dairy Science</em> y <em>NASEM (2021)</em>.<br>
         Diseñado y creado por el <strong>Dr. Alejandro Castañeda Correa</strong>.
     </div>
     """, 
