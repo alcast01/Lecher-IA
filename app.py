@@ -293,7 +293,7 @@ if st.button("🚀 Ejecutar Optimización con Telemetría PLF e IoT"):
             
         prob += pulp.lpSum([variables[str(row["Ingrediente"])] * float(row["Costo"]) for idx, row in editable_df.iterrows()])
         
-        # Restricciones Nutricionales (con ajuste automático si IoT detecta SARA)
+        # Restricciones Nutricionales
         effective_pendf = pendf_min + (1.5 if iot_ph_rumen < 5.9 else 0.0)
         
         prob += pulp.lpSum([variables[str(row["Ingrediente"])] for idx, row in editable_df.iterrows()]) == float(cms_req), "CMS_Total"
@@ -347,7 +347,7 @@ if st.button("🚀 Ejecutar Optimización con Telemetría PLF e IoT"):
                         "Inclusión (kg MS)": round(cantidad, 2),
                         "% en la Dieta (MS)": round(pct_dieta, 2),
                         "Base Fresca (kg/vaca)": round(base_fresca_vaca, 2),
-                        "Total Corral (kg IoT)": round(total_corral_iot, 1),
+                        "Total Corral (kg)": round(total_corral_iot, 1),
                         "Costo Parcial (MXN)": round(costo_parcial, 2)
                     })
                     
@@ -380,7 +380,7 @@ if st.button("🚀 Ejecutar Optimización con Telemetría PLF e IoT"):
             with col_tabla:
                 st.markdown("### 🧮 3. Ración Optimizada y Hoja TMR con Telemetría Carro Mezclador")
                 st.dataframe(
-                    df_res[["Ingrediente", "MS %", "Inclusión (kg MS)", "% en la Dieta (MS)", "Base Fresca (kg/vaca)", "Total Corral (kg IoT)"]], 
+                    df_res[["Ingrediente", "MS %", "Inclusión (kg MS)", "% en la Dieta (MS)", "Base Fresca (kg/vaca)", "Total Corral (kg)"]], 
                     use_container_width=True
                 )
                 
