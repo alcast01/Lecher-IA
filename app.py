@@ -2,97 +2,111 @@ import streamlit as st
 from pulp import LpProblem, LpMinimize, LpVariable, lpSum, LpStatus
 import pandas as pd
 
-# 1. Configuración de la página con ícono en la pestaña del navegador
+# Configuración de la página
 st.set_page_config(
-    page_title="LactiDiete MX | Optimizador de Dietas Lecheras",
+    page_title="LactiDieta Pro | NASEM & JDS Standard",
     page_icon="🐄",
     layout="wide"
 )
 
-# --- 2. ENCABEZADO Y LOGOTIPO ---
+# --- ENCABEZADO Y LOGOTIPO CIENTÍFICO ---
 col_logo, col_titulo = st.columns([1, 5])
 
 with col_logo:
-    # Muestra un distintivo visual estilo badge/logo con HTML/CSS
     st.markdown(
         """
-        <div style="background-color: #2E7D32; padding: 15px; border-radius: 12px; text-align: center; color: white;">
-            <span style="font-size: 45px;">🐄🥛</span><br>
-            <strong style="font-size: 14px; letter-spacing: 1px;">LACTI-DIETA</strong><br>
-            <span style="font-size: 10px; opacity: 0.8;">NUTRICIÓN BOVINA</span>
+        <div style="background-color: #1B5E20; padding: 15px; border-radius: 12px; text-align: center; color: white;">
+            <span style="font-size: 40px;">🔬🐄</span><br>
+            <strong style="font-size: 13px;">JDS & NASEM</strong><br>
+            <span style="font-size: 9px; opacity: 0.9;">BIO-NUTRICIÓN LECHERA</span>
         </div>
         """,
         unsafe_allow_html=True
     )
 
 with col_titulo:
-    st.title("LactiDieta MX — Formulación de Mínimo Costo")
-    st.markdown("**Sistema inteligente de optimización de raciones para vacas lecheras en producción.**")
+    st.title("LactiDieta Pro — Modelo Lineal Avanzado (JDS / NASEM)")
+    st.markdown("**Sistema de optimización con restricciones metabólicas, proteicas (RDP/RUP), fibra efectiva y límites de almidón.**")
 
 st.markdown("---")
 
-# --- BARRA LATERAL (SIDEBAR) CON LOGO MINIMALISTA ---
-st.sidebar.markdown(
-    """
-    <div style="text-align: center; padding-bottom: 10px;">
-        <span style="font-size: 30px;">🐮🌾</span>
-        <h3 style="margin: 0; color: #2E7D32;">LactiDieta Pro</h3>
-        <small>Formulación Ganado Lechero</small>
-    </div>
-    <hr style="margin-top: 5px; margin-bottom: 15px;">
-    """,
-    unsafe_allow_html=True
-)
+# --- BARRA LATERAL: PARÁMETROS FISIOLÓGICOS Y NUTRICIONALES ---
+st.sidebar.markdown("### 🧬 Parámetros del Animal (JDS)")
+paridad = st.sidebar.selectbox("Paridad", ["Multípara (2+ lactancias)", "Primípara (1er parto)"])
+dim = st.sidebar.slider("Días en Leche (DIM)", 10, 305, 120)
+peso_vivo = st.sidebar.slider("Peso Vivo (kg)", 500, 750, 650, 10)
+produccion_leche = st.sidebar.slider("Producción Leche 3.5% Grasa (kg/día)", 20, 55, 35, 1)
 
-st.sidebar.header("⚙️ Requerimientos Nutricionales")
-cms_req = st.sidebar.slider("Consumo de Materia Seca (kg MS)", 15.0, 25.0, 21.0, 0.5)
-nel_req = st.sidebar.slider("Energía Neta de Lactancia Mínima (Mcal/kg MS)", 1.4, 1.8, 1.65, 0.01)
-pc_req = st.sidebar.slider("Proteína Cruda Mínima (%)", 12.0, 20.0, 16.0, 0.5)
-fdn_min = st.sidebar.slider("Fibra Detergente Neutra Mínima (%)", 25.0, 38.0, 30.0, 0.5)
+st.sidebar.markdown("---")
+st.sidebar.markdown("### ⚙️ Requerimientos Metabólicos")
+cms_req = st.sidebar.slider("Consumo Materia Seca Objetivo (CMS kg)", 18.0, 28.0, 22.5, 0.5)
+nel_req = st.sidebar.slider("Energía Neta Lactancia (NEL Mcal/kg MS)", 1.50, 1.85, 1.70, 0.01)
+mp_req_g = st.sidebar.slider("Proteína Metabolizable (PM en gramos)", 1800, 3200, 2400, 50)
+forage_fdn_min = st.sidebar.slider("FDN de Forraje Mínima (% en MS)", 18.0, 28.0, 21.0, 0.5)
+starch_max = st.sidebar.slider("Almidón Máximo (% en MS - Prev. SARA)", 20.0, 32.0, 26.0, 0.5)
+ee_max = st.sidebar.slider("Extracto Etéreo / Grasa Máxima (% MS)", 4.0, 7.0, 6.0, 0.5)
 
-# --- DATOS BASE DE INGREDIENTES ---
+# --- BASE DE DATOS CIENTÍFICA DE INGREDIENTES ---
 datos_base = {
     "Ingrediente": ["Silo de Maíz", "Heno de Alfalfa", "Maíz Molido", "Sorgo Grano", "Pasta de Soya", "DDGS de Maíz", "Melasa de Caña", "Salvado de Trigo"],
     "Costo": [2.00, 4.00, 5.40, 4.80, 9.80, 7.00, 3.50, 4.50],
-    "NEL": [1.60, 1.40, 2.10, 2.00, 2.02, 1.95, 1.75, 1.65],
-    "PC": [8.5, 18.0, 9.5, 10.5, 45.0, 28.0, 4.5, 16.0],
-    "FDN": [45.0, 42.0, 10.0, 13.0, 14.0, 40.0, 1.0, 40.0],
-    "Min_Inclusion": [5.0, 5.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-    "Max_Inclusion": [15.0, 10.0, 8.0, 8.0, 4.0, 4.0, 2.0, 5.0]
+    "NEL": [1.62, 1.42, 2.15, 2.02, 2.05, 1.98, 1.78, 1.68],       # Mcal/kg MS
+    "MP": [62.0, 115.0, 75.0, 70.0, 310.0, 190.0, 25.0, 110.0],   # g/kg MS (Proteína Metabolizable)
+    "FDN": [42.0, 40.0, 9.5, 12.0, 13.0, 39.0, 1.0, 39.0],         # % FDN
+    "Forage_FDN": [42.0, 38.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],     # % Aporta como FDN de Forraje
+    "Almidon": [28.0, 3.0, 72.0, 68.0, 1.5, 5.0, 0.0, 20.0],        # % Almidón
+    "EE": [3.0, 2.0, 3.8, 3.1, 1.8, 9.0, 0.2, 4.2],               # % Extracto Etéreo (Grasa)
+    "Min_Inclusion": [5.0, 4.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    "Max_Inclusion": [16.0, 10.0, 10.0, 8.0, 5.0, 4.0, 2.0, 5.0]
 }
 
 df_ingredientes = pd.DataFrame(datos_base)
 
-st.subheader("📋 Tabla de Ingredientes y Precios (Editables)")
+st.subheader("📋 Matriz de Ingredientes y Perfil Nutricional (JDS / NASEM)")
 editable_df = st.data_editor(df_ingredientes, num_rows="dynamic")
 
-if st.button("🚀 Optimizar Dieta al Menor Costo"):
-    prob = LpProblem("Balance_Dietas_Lecheras", LpMinimize)
+if st.button("🚀 Ejecutar Optimización Avanzada"):
+    prob = LpProblem("Balance_Dietas_Avanzado", LpMinimize)
     
-    ingredientes = editable_df["Ingrediente"].tolist()
     variables = {}
     for idx, row in editable_df.iterrows():
         ing = row["Ingrediente"]
         variables[ing] = LpVariable(f"x_{ing.replace(' ', '_')}", lowBound=row["Min_Inclusion"], upBound=row["Max_Inclusion"])
         
+    # Función Objetivo: Minimizar Costo Total
     prob += lpSum([variables[row["Ingrediente"]] * row["Costo"] for idx, row in editable_df.iterrows()])
     
-    # Restricciones
+    # 1. Restricción de Consumo de Materia Seca (CMS)
     prob += lpSum([variables[row["Ingrediente"]] for idx, row in editable_df.iterrows()]) == cms_req, "CMS_Total"
-    prob += lpSum([variables[row["Ingrediente"]] * row["NEL"] for idx, row in editable_df.iterrows()]) >= nel_req * cms_req, "Min_NEL"
-    prob += lpSum([variables[row["Ingrediente"]] * (row["PC"] / 100.0) for idx, row in editable_df.iterrows()]) >= (pc_req / 100.0) * cms_req, "Min_PC"
-    prob += lpSum([variables[row["Ingrediente"]] * (row["FDN"] / 100.0) for idx, row in editable_df.iterrows()]) >= (fdn_min / 100.0) * cms_req, "Min_FDN"
     
+    # 2. Requerimiento de Energía Neta de Lactancia (NEL)
+    prob += lpSum([variables[row["Ingrediente"]] * row["NEL"] for idx, row in editable_df.iterrows()]) >= nel_req * cms_req, "Min_NEL"
+    
+    # 3. Requerimiento de Proteína Metabolizable (PM en gramos)
+    prob += lpSum([variables[row["Ingrediente"]] * row["MP"] for idx, row in editable_df.iterrows()]) >= mp_req_g, "Min_MP"
+    
+    # 4. Fibra Detergente Neutra de Forraje (Salud ruminal / peNDF)
+    prob += lpSum([variables[row["Ingrediente"]] * (row["Forage_FDN"] / 100.0) for idx, row in editable_df.iterrows()]) >= (forage_fdn_min / 100.0) * cms_req, "Min_Forage_FDN"
+    
+    # 5. Límite superior de Almidón (Prevención de Acidosis SARA)
+    prob += lpSum([variables[row["Ingrediente"]] * (row["Almidon"] / 100.0) for idx, row in editable_df.iterrows()]) <= (starch_max / 100.0) * cms_req, "Max_Starch"
+    
+    # 6. Límite superior de Extracto Etéreo / Grasa (Digestibilidad de fibra)
+    prob += lpSum([variables[row["Ingrediente"]] * (row["EE"] / 100.0) for idx, row in editable_df.iterrows()]) <= (ee_max / 100.0) * cms_req, "Max_EE"
+    
+    # Resolver
     prob.solve()
     
     if LpStatus[prob.status] == 'Optimal':
-        st.success("✅ ¡Dieta optimizada con éxito!")
+        st.success("✅ ¡Dieta formulada exitosamente bajo estándares científicos rigurosos!")
         
         resultados = []
         costo_total = 0
-        nel_total = 0
-        pc_total = 0
-        fdn_total = 0
+        nel_sum = 0
+        mp_sum = 0
+        forage_fdn_sum = 0
+        starch_sum = 0
+        ee_sum = 0
         
         for idx, row in editable_df.iterrows():
             ing = row["Ingrediente"]
@@ -100,9 +114,12 @@ if st.button("🚀 Optimizar Dieta al Menor Costo"):
             if cantidad > 0.001:
                 costo_parcial = cantidad * row["Costo"]
                 costo_total += costo_parcial
-                nel_total += cantidad * row["NEL"]
-                pc_total += cantidad * (row["PC"] / 100.0)
-                fdn_total += cantidad * (row["FDN"] / 100.0)
+                nel_sum += cantidad * row["NEL"]
+                mp_sum += cantidad * row["MP"]
+                forage_fdn_sum += cantidad * row["Forage_FDN"]
+                starch_sum += cantidad * row["Almidon"]
+                ee_sum += cantidad * row["EE"]
+                
                 resultados.append({
                     "Ingrediente": ing,
                     "Cantidad (kg MS)": round(cantidad, 2),
@@ -112,11 +129,13 @@ if st.button("🚀 Optimizar Dieta al Menor Costo"):
         df_res = pd.DataFrame(resultados)
         st.dataframe(df_res, use_container_width=True)
         
-        st.metric(label="Costo Total Diario de la Ración por Vaca", value=f"${costo_total:.2f} MXN")
+        st.metric(label="Costo Total Diario por Vaca", value=f"${costo_total:.2f} MXN")
         
-        col1, col2, col3 = st.columns(3)
-        col1.metric("NEL Promedio", f"{nel_total/cms_req:.2f} Mcal/kg", f"Meta: {nel_req}")
-        col2.metric("Proteína Cruda", f"{(pc_total/cms_req)*100:.2f}%", f"Meta: {pc_req}%")
-        col3.metric("FDN Total", f"{(fdn_total/cms_req)*100:.2f}%", f"Meta: {fdn_min}%")
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("NEL Consumida", f"{nel_sum/cms_req:.2f} Mcal/kg", f"Meta: {nel_req}")
+        col2.metric("PM Total", f"{mp_sum:.0f} g", f"Meta: {mp_req_g} g")
+        col3.metric("Almidón en Dieta", f"{(starch_sum/cms_req)*100:.1f}%", f"Máx: {starch_max}%")
+        col4.metric("FDN de Forraje", f"{(forage_fdn_sum/cms_req)*100:.1f}%", f"Mín: {forage_fdn_min}%")
+        
     else:
-        st.error("⚠️ No se encontró una solución factible con los límites y requerimientos actuales.")
+        st.error("⚠️ No se encontró solución factible. Las restricciones cruzadas (por ejemplo, exigir mucha fibra de forraje con un límite bajo de ingredientes) son estrictas. Intenta ajustar los rangos de inclusión.")
