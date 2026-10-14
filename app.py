@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import pulp
 
 # --- 1. CONFIGURACIÓN DE PÁGINA ---
@@ -32,15 +33,15 @@ with col_titulo:
 st.markdown("---")
 
 # --- 3. BARRA LATERAL: MECANISMO DE CÁLCULO DINÁMICO DEL ANIMAL ---
-st.sidebar.markdown("### 🧬 Parámetros Fisiológicos (JDS)")
+st.sidebar.markdown("### 🧬 Parámetros Fisiológicos")
 paridad = st.sidebar.selectbox("Paridad", ["Multípara (2+ lactancias)", "Primípara (1er parto)"])
-dim = st.sidebar.slider("Días en Leche (DIM)", 10, 350, 90, 5)
+dim = st.sidebar.slider("Días en Leche (DIM)", 5, 305, 90, 5)
 peso_vivo = st.sidebar.slider("Peso Vivo (kg)", 450, 800, 650, 10)
 bcs = st.sidebar.slider("Condición Corporal (BCS 1-5)", 2.25, 4.0, 3.0, 0.25)
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 🥛 Metas de Producción y Leche")
-prod_leche = st.sidebar.slider("Leche Total (kg/día)", 15.0, 60.0, 35.0, 0.5)
+prod_leche = st.sidebar.slider("Leche Total Actual (kg/día)", 15.0, 60.0, 35.0, 0.5)
 pct_grasa = st.sidebar.slider("Grasa en Leche (%)", 2.8, 5.0, 3.7, 0.1)
 pct_proteina = st.sidebar.slider("Proteína Verd. en Leche (%)", 2.6, 4.0, 3.2, 0.1)
 
@@ -173,13 +174,59 @@ if st.button("🚀 Ejecutar Optimización Avanzada de Dietas"):
                 st.metric("Grasa Total (EE)", f"{(ee_sum/cms_req)*100:.1f}%", f"Máx: {ee_max}%")
                 st.metric("Calcio (Ca) / Fósforo (P)", f"{(ca_sum/cms_req)*100:.2f}% / {(p_sum/cms_req)*100:.2f}%", f"Metas: {ca_min}% / {p_min}%")
 
+            # --- 6. MODELACIÓN Y GRÁFICAS DE PREDICCIÓN PRODUCTIVA ---
+            st.markdown("---")
+            st.subheader("📈 Predicción del Comportamiento Productivo y Balance Energético (Modelo de Wood)")
+            
+            # Generar curva de 305 días de lactancia
+            dias_lactancia = np.arange(1, 306)
+            
+            # Parámetros del modelo de Wood y ajuste a la producción actual
+            a_factor = prod_leche / ((dim ** 0.2) * np.exp(-0.003 * dim))
+            produccion_predicha = a_factor * (dias_lactancia ** 0.2) * np.exp(-0.003 * dias_lactancia)
+            
+            # Estimación del Consumo de Materia Seca (CMS) a lo largo de la lactancia
+            cms_predicho = (0.022 * peso_vivo) + (0.38 * ((0.327 * produccion_predicha) + (12.95 * (produccion_predicha * (pct_grasa / 100.0)))))
+            # Ajuste por depresión de consumo inicial en lactancia temprana
+            factor_depresion = 1 - np.exp(-0.04 * dias_lactancia)
+            cms_predicho = cms_predicho * factor_depresion
+            
+            # Energía Aportada vs Energía Requerida
+            nel_aportada = cms_predicho * (nel_sum / cms_req)
+            nel_mantenimiento = 0.08 * (peso_vivo ** 0.75)
+            nel_requerida_total = nel_mantenimiento + (0.70 * produccion_predicha)
+            
+            df_curvas = pd.DataFrame({
+                "Día de Lactancia": dias_lactancia,
+                "Producción Leche Estimada (kg/día)": np.round(produccion_predicha, 2),
+                "Consumo MS Estimado (kg/día)": np.round(cms_predicho, 2),
+                "Energía Aportada (Mcal NEL)": np.round(nel_aportada, 2),
+                "Energía Requerida Total (Mcal NEL)": np.round(nel_requerida_total, 2)
+            }).set_index("Día de Lactancia")
+            
+            tab1, tab2 = st.tabs(["📉 Curva de Lactancia & CMS", "⚡ Balance Energético (Mcal NEL)"])
+            
+            with tab1:
+                st.markdown("**Trayectoria esperada de producción láctea y consumo de materia seca a 305 días:**")
+                st.line_chart(df_curvas[["Producción Leche Estimada (kg/día)", "Consumo MS Estimado (kg/día)"]])
+                st.info(f"📍 **Punto de evaluación actual:** Día {dim} de lactancia | Producción: **{prod_leche} kg/día** | Consumo estimado: **{cms_predicho[dim-1]:.1f} kg MS/día**")
+
+            with tab2:
+                st.markdown("**Comparación del Aporte Energético vs. Requerimiento Total:**")
+                st.line_chart(df_curvas[["Energía Aportada (Mcal NEL)", "Energía Requerida Total (Mcal NEL)"]])
+                
+                if dim < 60:
+                    st.warning("⚠️ **Atención (Lactancia Temprana):** La vaca se encuentra en fase de Balance Energético Negativo (BEN). Movilizará reservas corporales de grasa para sostener el pico de lactancia.")
+                else:
+                    st.success("✅ **Fase de Balance Energético Positivo:** El consumo de materia seca satisface los requerimientos para producción y recuperación de condición corporal.")
+
         else:
-            st.warning("⚠️ No se encontró solución factible. Las restricciones nutricionales son estrictas. Intenta ampliar los rangos de inclusión de los ingredientes o ajustar los límites de la barra lateral.")
+            st.warning("⚠️ No se encontró solución factible. Las restricciones nutricionales son strictly aplicadas. Intenta ampliar los rangos de inclusión de los ingredientes o ajustar los límites de la barra lateral.")
             
     except Exception as e:
         st.error(f"Ocurrió un error al procesar el modelo matemático: {e}")
 
-# --- 6. PIE DE PÁGINA E INSTITUCIONAL ---
+# --- 7. PIE DE PÁGINA E INSTITUCIONAL ---
 st.markdown("---")
 st.markdown(
     """
