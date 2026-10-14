@@ -80,15 +80,15 @@ COLUMNAS_HATO = [
     "Estado Salud"
 ]
 
-# --- INICIALIZACIÓN DE ESTADOS DE SESIÓN (AUTENTICACIÓN, 2FA Y SUSCRIPCIÓN) ---
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
-if "two_fa_verified" not in st.session_state:
-    st.session_state.two_fa_verified = False
+# --- INICIALIZACIÓN DE ESTADOS DE SESIÓN ---
 if "subscribed" not in st.session_state:
     st.session_state.subscribed = False
 if "plan_seleccionado" not in st.session_state:
     st.session_state.plan_seleccionado = None
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+if "two_fa_verified" not in st.session_state:
+    st.session_state.two_fa_verified = False
 
 if "cita_pagada" not in st.session_state:
     st.session_state.cita_pagada = False
@@ -108,56 +108,12 @@ if "df_hato" not in st.session_state:
     st.session_state.df_hato = pd.DataFrame(columns=COLUMNAS_HATO)
 
 
-# ==========================================
-# FLUJO 1: PANTALLA DE LOGIN & 2FA (SEGURIDAD)
-# ==========================================
-if not st.session_state.logged_in or not st.session_state.two_fa_verified:
-    st.markdown("<h1 style='text-align: center; color: #054A29;'>🧬 LECHER-IA Pro — Acceso Seguro</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #666;'>Plataforma Enterprise de Precisión Bionutricional & Inteligencia Ganadera</p>", unsafe_allow_html=True)
-    st.markdown("<br>", unsafe_allow_html=True)
-    
-    col_l1, col_l2, col_l3 = st.columns([1, 1.5, 1])
-    with col_l2:
-        with st.container():
-            st.markdown("### 🔐 Autenticación de Usuario & 2FA")
-            
-            if not st.session_state.logged_in:
-                with st.form("form_login"):
-                    usuario = st.text_input("Usuario / Correo Electrónico", value="admin")
-                    password = st.text_input("Contraseña", type="password", value="lecheria2026")
-                    btn_login = st.form_submit_button("Siguiente: Verificar 2FA ➔")
-                    
-                    if btn_login:
-                        if usuario == "admin" and password == "lecheria2026":
-                            st.session_state.logged_in = True
-                            st.success("✅ Credenciales correctas. Se ha enviado un código OTP de 6 dígitos a tu autenticador.")
-                            st.rerun()
-                        else:
-                            st.error("❌ Usuario o contraseña incorrectos. (Prueba con usuario: admin, password: lecheria2026)")
-            else:
-                st.success("🟢 Usuario autenticado correctamente.")
-                st.info("📱 Ingresa el código de Doble Factor de Autenticación (2FA) recibido en tu dispositivo (Código de prueba simulado: **2026**).")
-                
-                with st.form("form_2fa"):
-                    codigo_2fa = st.text_input("Código 2FA (6 dígitos)", max_chars=6, value="2026")
-                    btn_2fa = st.form_submit_button("🔒 Validar 2FA e Ingresar")
-                    
-                    if btn_2fa:
-                        if codigo_2fa == "2026":
-                            st.session_state.two_fa_verified = True
-                            st.success("✅ ¡Autenticación de Doble Factor (2FA) completada con éxito!")
-                            st.rerun()
-                        else:
-                            st.error("❌ Código 2FA inválido. Utiliza el código de prueba: 2026")
-    st.stop()
-
-
-# ==========================================
-# FLUJO 2: PASARELA DE SUSCRIPCIÓN (PLANS 3, 6, 12 MESES + MARKETING NUTRI-ON)
-# ==========================================
+# =========================================================================
+# PASO 1 PRIMORDIAL: PASARELA DE PLANES Y SUSCRIPCIÓN (APARECE AL INICIO)
+# =========================================================================
 if not st.session_state.subscribed:
-    st.markdown("<h1 style='text-align: center; color: #054A29;'>💎 Elige tu Plan de Suscripción Lecher-IA Pro</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #555; font-size: 16px;'>Potencia tu establo con modelos NASEM 2021, Gemelo Digital y Sincronización Bluetooth para Carros Mezcladores.</p>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; color: #054A29;'>💎 Planes de Suscripción Lecher-IA Pro</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #555; font-size: 16px;'>Selecciona tu plan para desbloquear la plataforma líder en precisión bionutricional, modelos NASEM 2021 y control de hato.</p>", unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
     
     col_p1, col_p2, col_p3 = st.columns(3)
@@ -175,7 +131,7 @@ if not st.session_state.subscribed:
         if st.button("Seleccionar Plan 3 Meses", use_container_width=True):
             st.session_state.subscribed = True
             st.session_state.plan_seleccionado = "3 Meses"
-            st.success("¡Suscripción Trimestral Activada!")
+            st.success("¡Suscripción Trimestral Seleccionada! Procede con el inicio de sesión seguro.")
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
@@ -192,7 +148,7 @@ if not st.session_state.subscribed:
         if st.button("Seleccionar Plan 6 Meses", use_container_width=True):
             st.session_state.subscribed = True
             st.session_state.plan_seleccionado = "6 Meses"
-            st.success("¡Suscripción Semestral Activada!")
+            st.success("¡Suscripción Semestral Seleccionada! Procede con el inicio de sesión seguro.")
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
@@ -212,7 +168,7 @@ if not st.session_state.subscribed:
             st.session_state.subscribed = True
             st.session_state.plan_seleccionado = "12 Meses VIP"
             st.balloons()
-            st.success("¡Suscripción Anual VIP Activada con Éxito!")
+            st.success("¡Suscripción Anual VIP Seleccionada con Éxito!")
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
@@ -221,9 +177,53 @@ if not st.session_state.subscribed:
     st.stop()
 
 
-# ==========================================
-# APLICACIÓN PRINCIPAL (ACCESO CONCEDIDO)
-# ==========================================
+# =========================================================================
+# PASO 2: PANTALLA DE AUTENTICACIÓN Y DOBLE FACTOR (2FA)
+# =========================================================================
+if not st.session_state.logged_in or not st.session_state.two_fa_verified:
+    st.markdown("<h1 style='text-align: center; color: #054A29;'>🔐 Lecher-IA Pro — Autenticación Segura</h1>", unsafe_allow_html=True)
+    st.markdown(f"<p style='text-align: center; color: #137547; font-weight: 600;'>Plan Seleccionado: {st.session_state.plan_seleccionado}</p>", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    col_l1, col_l2, col_l3 = st.columns([1, 1.5, 1])
+    with col_l2:
+        with st.container():
+            st.markdown("### 🔑 Credenciales & Doble Factor (2FA)")
+            
+            if not st.session_state.logged_in:
+                with st.form("form_login"):
+                    usuario = st.text_input("Usuario / Correo Electrónico", value="admin")
+                    password = st.text_input("Contraseña", type="password", value="lecheria2026")
+                    btn_login = st.form_submit_button("Siguiente: Verificar 2FA ➔")
+                    
+                    if btn_login:
+                        if usuario == "admin" and password == "lecheria2026":
+                            st.session_state.logged_in = True
+                            st.success("✅ Credenciales correctas. Se ha enviado un código OTP de 6 dígitos a tu autenticador.")
+                            st.rerun()
+                        else:
+                            st.error("❌ Usuario o contraseña incorrectos. (Prueba con usuario: admin, password: lecheria2026)")
+            else:
+                st.success("🟢 Usuario autenticado correctamente.")
+                st.info("📱 Ingresa el código de Doble Factor de Autenticación (2FA) recibido en tu dispositivo (Código de prueba: **2026**).")
+                
+                with st.form("form_2fa"):
+                    codigo_2fa = st.text_input("Código 2FA (6 dígitos)", max_chars=6, value="2026")
+                    btn_2fa = st.form_submit_button("🔒 Validar 2FA e Ingresar a la App")
+                    
+                    if btn_2fa:
+                        if codigo_2fa == "2026":
+                            st.session_state.two_fa_verified = True
+                            st.success("✅ ¡Autenticación completada con éxito!")
+                            st.rerun()
+                        else:
+                            st.error("❌ Código 2FA inválido. Utiliza el código de prueba: 2026")
+    st.stop()
+
+
+# =========================================================================
+# PASO 3: APLICACIÓN PRINCIPAL (ACCESO TOTAL LUEGO DE SUSCRIPCIÓN + LOGIN)
+# =========================================================================
 
 # --- REPORTE OPERATIVO PDF NASEM 2021 ---
 def generar_pdf_tmr_financiero(df_resultados, costo_alimento, cms_req, ecm, raza, estado_prod, tam_corral, precio_leche, iofc, ebitda_diario, costo_total_litro, break_even_leche, ch4_vaca, n_exc_vaca, iot_status, mun_est, de_novo_fat):
@@ -713,7 +713,7 @@ st.markdown("---")
 st.markdown(
     """
     <div style='text-align: center; color: gray; font-size: 12px;'>
-        <strong>Lecher-IA Pro</strong> &bull; Secure Enterprise Suite, Digital Twin & Telemedicine<br>
+        <strong>Lecher-IA Pro</strong> &bull; Enterprise Suite, Digital Twin & Telemedicine<br>
         Designed and engineered by <strong>Dr. Alejandro Castañeda Correa</strong>.
     </div>
     """, 
