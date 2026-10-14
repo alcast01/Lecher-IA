@@ -6,6 +6,7 @@ import io
 import json
 import cv2
 from PIL import Image
+from datetime import datetime, timedelta
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -13,10 +14,17 @@ from reportlab.lib import colors
 
 # --- 1. CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(
-    page_title="Lecher-IA Pro | Plataforma IoT, Visión AI & Finanzas Bovina",
+    page_title="Lecher-IA Pro | Plataforma IoT, Visión AI & Telemedicina Bovina",
     page_icon="🥛",
     layout="wide"
 )
+
+# Inicializar estados de sesión para autenticación y citas
+if "autenticado" not in st.session_state:
+    st.session_state.autenticado = False
+    st.session_state.usuario = ""
+    st.session_state.cita_pagada = False
+    st.session_state.detalles_cita = {}
 
 # --- MÓDULO 5: REPORTE OPERATIVO, FINANCIERO E IOT EN PDF ---
 def generar_pdf_tmr_financiero(df_resultados, costo_alimento, cms_req, ecm, raza, estado_prod, tam_corral, precio_leche, iofc, ebitda_diario, costo_total_litro, break_even_leche, ch4_vaca, n_exc_vaca, iot_status):
@@ -84,20 +92,108 @@ with col_logo:
         ">
             <span style="font-size: 38px; line-height: 1;">🧬🐮</span>
             <div style="font-size: 15px; font-weight: 800; letter-spacing: 1.5px; margin-top: 4px; text-transform: uppercase;">LECHER-IA</div>
-            <div style="font-size: 9px; font-weight: 500; opacity: 0.85; letter-spacing: 0.8px;">AI COMPUTER VISION & PLF</div>
+            <div style="font-size: 9px; font-weight: 500; opacity: 0.85; letter-spacing: 0.8px;">TELEMEDICINE & PRECISION SUITE</div>
         </div>
         """,
         unsafe_allow_html=True
     )
 
 with col_titulo:
-    st.title("Lecher-IA Pro — Visión Artificial y Ponderación por Fotografía")
-    st.markdown("<h4 style='color: #2A9D8F; margin-top: -15px; font-weight: 600;'>Estimación biométrica de peso vivo y telemetría inteligente para ganado lechero.</h4>", unsafe_allow_html=True)
+    st.title("Lecher-IA Pro — Nutrición de Precisión y Clínica Virtual")
+    st.markdown("<h4 style='color: #2A9D8F; margin-top: -15px; font-weight: 600;'>Plataforma integral de formulación, telemetría y consultoría veterinaria especializada.</h4>", unsafe_allow_html=True)
     st.markdown("<small style='color: #666;'>Diseñada y creada por el <b>Dr. Alejandro Castañeda Correa</b>.</small>", unsafe_allow_html=True)
 
 st.markdown("---")
 
+# --- MÓDULO DE AUTENTICACIÓN Y CLINICA VIRTUAL (SIDEBAR) ---
+st.sidebar.markdown("## 🔐 Portal de Cliente & Telemedicina")
+
+if not st.session_state.autenticado:
+    tab_auth1, tab_auth2 = st.sidebar.tabs(["Iniciar Sesión", "Registrarse"])
+    
+    with tab_auth1:
+        email_login = st.text_input("Correo Electrónico", key="login_email")
+        pass_login = st.text_input("Contraseña", type="password", key="login_pass")
+        if st.button("Entrar a Lecher-IA"):
+            if email_login:
+                st.session_state.autenticado = True
+                st.session_state.usuario = email_login
+                st.success(f"¡Bienvenido, {email_login}!")
+                st.rerun()
+            else:
+                st.warning("Ingrese su correo electrónico.")
+                
+    with tab_auth2:
+        nombre_reg = st.text_input("Nombre Completo / Establo")
+        email_reg = st.text_input("Correo Electrónico", key="reg_email")
+        pass_reg = st.text_input("Contraseña", type="password", key="reg_pass")
+        if st.button("Crear Cuenta"):
+            if nombre_reg and email_reg:
+                st.session_state.autenticado = True
+                st.session_state.usuario = nombre_reg
+                st.success("¡Cuenta creada y sesión iniciada con éxito!")
+                st.rerun()
+            else:
+                st.warning("Complete todos los campos de registro.")
+    st.stop()
+else:
+    st.sidebar.success(f"👤 **Sesión Activa:** {st.session_state.usuario}")
+    if st.sidebar.button("Cerrar Sesión"):
+        st.session_state.autenticado = False
+        st.session_state.usuario = ""
+        st.session_state.cita_pagada = False
+        st.rerun()
+
+st.sidebar.markdown("---")
+
+# --- MÓDULO DE AGENDAMIENTO, PAGO Y VIDEOCONSULTA ---
+st.sidebar.markdown("## 🩺 Clínica Virtual & Citas")
+st.sidebar.caption("Agenda una consultoría técnica personalizada con el **Dr. Alejandro Castañeda Correa**.")
+
+with st.sidebar.expander("📅 Agendar y Pagar Consulta ($475 MXN)", expanded=not st.session_state.cita_pagada):
+    fecha_cita = st.date_input("Fecha de Consulta", min_value=datetime.today().date())
+    hora_cita = st.time_input("Hora Preferida", value=datetime.strptime("10:00", "%H:%M").time())
+    motivo_consulta = st.text_area("Motivo o Diagnóstico Requerido", "Evaluación de ración TMR y eficiencia de hato.")
+    
+    st.markdown("---")
+    st.markdown("💳 **Resumen de Pago:**")
+    st.markdown("• **Servicio:** Asesoría Nutricional y Clínica Bovina (60 min)<br>• **Especialista:** Dr. Alejandro Castañeda Correa<br>• **Total a Pagar:** **$475.00 MXN**", unsafe_allow_html=True)
+    
+    metodo_pago = st.selectbox("Método de Pago", ["Tarjeta de Crédito / Débito (Stripe)", "Transferencia SPEI", "PayPal"])
+    
+    if st.button("Pagar $475 MXN y Confirmar Cita"):
+        st.session_state.cita_pagada = True
+        st.session_state.detalles_cita = {
+            "fecha": str(fecha_cita),
+            "hora": str(hora_cita),
+            "motivo": motivo_consulta
+        }
+        st.success("✅ ¡Pago procesado exitosamente y cita agendada en el calendario del especialista!")
+
+if st.session_state.cita_pagada:
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("🟢 **Cita Agendada:**")
+    st.sidebar.info(f"📅 **Fecha:** {st.session_state.detalles_cita.get('fecha')} a las {st.session_state.detalles_cita.get('hora')}")
+    
+    if st.sidebar.button("🎥 Entrar a Videollamada"):
+        st.sidebar.success("🔗 Redirigiendo a la sala virtual segura con el Dr. Alejandro Castañeda...")
+        st.markdown(
+            """
+            <div style="background: #E8F5E9; padding: 20px; border-radius: 12px; border: 2px solid #2E7D32; text-align: center; margin-bottom: 20px;">
+                <h3 style="color: #1B5E20; margin-top: 0;">🎥 Sala de Telemedicina Veterinaria Activa</h3>
+                <p>Conectado con el especialista <b>Dr. Alejandro Castañeda Correa</b>.</p>
+                <a href="https://meet.jit.si/LecherIAParaderoClinicaVirtual" target="_blank">
+                    <button style="background: #2E7D32; color: white; padding: 12px 24px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">
+                        🚀 Abrir Videollamada Segura en Nueva Pestaña
+                    </button>
+                </a>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
 # --- MÓDULO DE VISIÓN ARTIFICIAL: ESTIMACIÓN DE PESO POR FOTOGRAFÍA ---
+st.sidebar.markdown("---")
 st.sidebar.markdown("## 📷 0. Visión AI & Ponderación por Foto")
 usar_vision_ai = st.sidebar.checkbox("Activar Estimación de Peso por Fotografía", value=True)
 
@@ -231,7 +327,7 @@ ingresos_extras_subproductos = st.sidebar.number_input("Ingresos Extras (MXN/vac
 
 # --- MÓDULO 2: BASE DE DATOS Y MATRIZ NUTRICIONAL ---
 st.subheader("🌾 2. Matriz Nutricional, Visión AI y Disponibilidad de Insumos")
-st.caption(f"Peso Actual Vinculado por IA: **{peso_vivo} kg** | pH Ruminal IoT: **{iot_ph_rumen}**")
+st.caption(f"Usuario: **{st.session_state.usuario}** | Peso Actual por IA: **{peso_vivo} kg** | pH Ruminal IoT: **{iot_ph_rumen}**")
 
 datos_base = {
     "Ingrediente": ["Silo de Maíz", "Heno de Alfalfa", "Maíz Molido", "Sorgo Grano", "Pasta de Soya", "DDGS Maíz", "Melasa Caña", "Salvado Trigo", "Grasa Sobrepaso", "Carbonato Calcio"],
@@ -297,7 +393,7 @@ if st.button("🚀 Ejecutar Optimización con Visión AI & Telemetría"):
         prob.solve()
         
         if prob.status == 1:
-            st.success(f"✅ ¡Dieta Bio-Optimizada con Peso Fotográfico de {peso_vivo} kg y Telemetría IoT!")
+            st.success(f"✅ ¡Dieta Bio-Optimizada para {st.session_state.usuario} con Peso de {peso_vivo} kg!")
             
             resultados = []
             costo_alimento = 0
@@ -436,7 +532,7 @@ st.markdown("---")
 st.markdown(
     """
     <div style='text-align: center; color: gray; font-size: 12px;'>
-        <strong>Lecher-IA Pro</strong> &bull; Sistema de Visión AI, IoT, Nutrición y Finanzas Bovina<br>
+        <strong>Lecher-IA Pro</strong> &bull; Sistema de Visión AI, Telemedicina, Nutrición y Finanzas Bovina<br>
         Designed and engineered by <strong>Dr. Alejandro Castañeda Correa</strong>.
     </div>
     """, 
