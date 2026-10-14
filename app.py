@@ -1,7 +1,6 @@
 import streamlit as st
-import pulp
-from pulp import LpProblem, LpMinimize, LpVariable, lpSum
 import pandas as pd
+import pulp
 
 # Configuración de la página
 st.set_page_config(
@@ -69,29 +68,29 @@ editable_df = st.data_editor(df_ingredientes, num_rows="fixed")
 
 if st.button("🚀 Ejecutar Optimización Avanzada"):
     try:
-        prob = LpProblem("Balance_Dietas_Avanzado", LpMinimize)
+        prob = pulp.LpProblem("Balance_Dietas_Avanzado", pulp.LpMinimize)
         
         variables = {}
         for idx, row in editable_df.iterrows():
             ing = str(row["Ingrediente"])
-            variables[ing] = LpVariable(f"x_{ing.replace(' ', '_')}", lowBound=float(row["Min_Inclusion"]), upBound=float(row["Max_Inclusion"]))
+            variables[ing] = pulp.LpVariable(f"x_{ing.replace(' ', '_')}", lowBound=float(row["Min_Inclusion"]), upBound=float(row["Max_Inclusion"]))
             
         # Función Objetivo: Minimizar Costo Total
-        prob += lpSum([variables[str(row["Ingrediente"])] * float(row["Costo"]) for idx, row in editable_df.iterrows()])
+        prob += pulp.lpSum([variables[str(row["Ingrediente"])] * float(row["Costo"]) for idx, row in editable_df.iterrows()])
         
         # Restricciones Lineales
-        prob += lpSum([variables[str(row["Ingrediente"])] for idx, row in editable_df.iterrows()]) == float(cms_req), "CMS_Total"
-        prob += lpSum([variables[str(row["Ingrediente"])] * float(row["NEL"]) for idx, row in editable_df.iterrows()]) >= float(nel_req) * float(cms_req), "Min_NEL"
-        prob += lpSum([variables[str(row["Ingrediente"])] * float(row["MP"]) for idx, row in editable_df.iterrows()]) >= float(mp_req_g), "Min_MP"
-        prob += lpSum([variables[str(row["Ingrediente"])] * (float(row["Forage_FDN"]) / 100.0) for idx, row in editable_df.iterrows()]) >= (float(forage_fdn_min) / 100.0) * float(cms_req), "Min_Forage_FDN"
-        prob += lpSum([variables[str(row["Ingrediente"])] * (float(row["Almidon"]) / 100.0) for idx, row in editable_df.iterrows()]) <= (float(starch_max) / 100.0) * float(cms_req), "Max_Starch"
-        prob += lpSum([variables[str(row["Ingrediente"])] * (float(row["EE"]) / 100.0) for idx, row in editable_df.iterrows()]) <= (float(ee_max) / 100.0) * float(cms_req), "Max_EE"
+        prob += pulp.lpSum([variables[str(row["Ingrediente"])] for idx, row in editable_df.iterrows()]) == float(cms_req), "CMS_Total"
+        prob += pulp.lpSum([variables[str(row["Ingrediente"])] * float(row["NEL"]) for idx, row in editable_df.iterrows()]) >= float(nel_req) * float(cms_req), "Min_NEL"
+        prob += pulp.lpSum([variables[str(row["Ingrediente"])] * float(row["MP"]) for idx, row in editable_df.iterrows()]) >= float(mp_req_g), "Min_MP"
+        prob += pulp.lpSum([variables[str(row["Ingrediente"])] * (float(row["Forage_FDN"]) / 100.0) for idx, row in editable_df.iterrows()]) >= (float(forage_fdn_min) / 100.0) * float(cms_req), "Min_Forage_FDN"
+        prob += pulp.lpSum([variables[str(row["Ingrediente"])] * (float(row["Almidon"]) / 100.0) for idx, row in editable_df.iterrows()]) <= (float(starch_max) / 100.0) * float(cms_req), "Max_Starch"
+        prob += pulp.lpSum([variables[str(row["Ingrediente"])] * (float(row["EE"]) / 100.0) for idx, row in editable_df.iterrows()]) <= (float(ee_max) / 100.0) * float(cms_req), "Max_EE"
         
         # Resolver el modelo
         prob.solve()
         
-        # Validación de estado con la nueva sintaxis compatible de PuLP
-        if prob.status == pulp.LpStatusOptimal:
+        # Validación de estado estricta por código numérico (1 = Optimal)
+        if prob.status == 1:
             st.success("✅ ¡Dieta formulada exitosamente bajo estándares científicos rigurosos!")
             
             resultados = []
