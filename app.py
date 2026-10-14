@@ -5,30 +5,38 @@ import pulp
 
 # --- 1. CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(
-    page_title="Lecher-IA Pro",
-    page_icon="🐄",
+    page_title="Lecher-IA Pro | Precisión Nutricional",
+    page_icon="🥛",
     layout="wide"
 )
 
-# --- 2. ENCABEZADO, LOGOTIPO Y BRANDING ---
-col_logo, col_titulo = st.columns([1, 5])
+# --- 2. ENCABEZADO, LOGOTIPO Y BRANDING RENOVADO ---
+col_logo, col_titulo = st.columns([1.2, 4.8])
 
 with col_logo:
     st.markdown(
         """
-        <div style="background-color: #1B5E20; padding: 12px; border-radius: 12px; text-align: center; color: white;">
-            <span style="font-size: 38px;">🔬🐄</span><br>
-            <strong style="font-size: 12px; letter-spacing: 1px;">LECHER-IA</strong><br>
-            <span style="font-size: 8px; opacity: 0.9;">BIO-NUTRICIÓN</span>
+        <div style="
+            background: linear-gradient(135deg, #054A29 0%, #137547 50%, #2A9D8F 100%);
+            padding: 16px 12px;
+            border-radius: 16px;
+            text-align: center;
+            color: white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+            border: 1px solid rgba(255,255,255,0.15);
+        ">
+            <span style="font-size: 38px; line-height: 1;">🧬🐮</span>
+            <div style="font-size: 15px; font-weight: 800; letter-spacing: 1.5px; margin-top: 4px; text-transform: uppercase;">LECHER-IA</div>
+            <div style="font-size: 9px; font-weight: 500; opacity: 0.85; letter-spacing: 0.8px;">NUTRICIÓN DE PRECISIÓN</div>
         </div>
         """,
         unsafe_allow_html=True
     )
 
 with col_titulo:
-    st.title("Lecher-IA Pro — Formulación Nutricional de Alta Precisión")
-    st.markdown("*Optimizando la precisión ruminal y la rentabilidad lechera a través de la ciencia.*")
-    st.markdown("<small style='color: #555;'>Diseñada y creada por el <b>Dr. Alejandro Castañeda Correa</b>.</small>", unsafe_allow_html=True)
+    st.title("Lecher-IA Pro")
+    st.markdown("<h4 style='color: #2A9D8F; margin-top: -15px; font-weight: 600;'>Precisión nutricional que rinde en la tanqueta.</h4>", unsafe_allow_html=True)
+    st.markdown("<small style='color: #666;'>Diseñada y creada por el <b>Dr. Alejandro Castañeda Correa</b>.</small>", unsafe_allow_html=True)
 
 st.markdown("---")
 
@@ -181,17 +189,16 @@ if st.button("🚀 Ejecutar Optimización Avanzada de Dietas"):
             # Generar curva de 305 días de lactancia
             dias_lactancia = np.arange(1, 306)
             
-            # Parámetros del modelo de Wood y ajuste a la producción actual
+            # Parámetros del modelo de Wood
             a_factor = prod_leche / ((dim ** 0.2) * np.exp(-0.003 * dim))
             produccion_predicha = a_factor * (dias_lactancia ** 0.2) * np.exp(-0.003 * dias_lactancia)
             
-            # Estimación del Consumo de Materia Seca (CMS) a lo largo de la lactancia
+            # Estimación del CMS a lo largo de la lactancia
             cms_predicho = (0.022 * peso_vivo) + (0.38 * ((0.327 * produccion_predicha) + (12.95 * (produccion_predicha * (pct_grasa / 100.0)))))
-            # Ajuste por depresión de consumo inicial en lactancia temprana
             factor_depresion = 1 - np.exp(-0.04 * dias_lactancia)
             cms_predicho = cms_predicho * factor_depresion
             
-            # Energía Aportada vs Energía Requerida
+            # Aporte y Requerimiento de Energía
             nel_aportada = cms_predicho * (nel_sum / cms_req)
             nel_mantenimiento = 0.08 * (peso_vivo ** 0.75)
             nel_requerida_total = nel_mantenimiento + (0.70 * produccion_predicha)
@@ -221,7 +228,7 @@ if st.button("🚀 Ejecutar Optimización Avanzada de Dietas"):
                     st.success("✅ **Fase de Balance Energético Positivo:** El consumo de materia seca satisface los requerimientos para producción y recuperación de condición corporal.")
 
         else:
-            st.warning("⚠️ No se encontró solución factible. Las restricciones nutricionales son strictly aplicadas. Intenta ampliar los rangos de inclusión de los ingredientes o ajustar los límites de la barra lateral.")
+            st.warning("⚠️ No se encontró solución factible. Las restricciones nutricionales son aplicadas estrictamente. Intenta ampliar los rangos de inclusión de los ingredientes o ajustar los límites de la barra lateral.")
             
     except Exception as e:
         st.error(f"Ocurrió un error al procesar el modelo matemático: {e}")
