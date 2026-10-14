@@ -10,13 +10,13 @@ from reportlab.lib import colors
 
 # --- 1. CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(
-    page_title="Lecher-IA Pro | Plataforma de Nutrición y Sostenibilidad Bovina",
+    page_title="Lecher-IA Pro | Plataforma Bio-Económica y Financiera Bovina",
     page_icon="🥛",
     layout="wide"
 )
 
-# --- MÓDULO 5: REPORTE OPERATIVO PDF (TMR Y HUELLA AMBIENTAL) ---
-def generar_pdf_tmr(df_resultados, costo_total, cms_req, ecm, raza, estado_prod, tam_corral, precio_leche, iofc, ch4_vaca, n_exc_vaca):
+# --- MÓDULO 5: REPORTE OPERATIVO Y FINANCIERO EN PDF ---
+def generar_pdf_tmr_financiero(df_resultados, costo_alimento, cms_req, ecm, raza, estado_prod, tam_corral, precio_leche, iofc, ebitda_diario, costo_total_litro, break_even_leche, ch4_vaca, n_exc_vaca):
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=36)
     story = []
@@ -25,9 +25,9 @@ def generar_pdf_tmr(df_resultados, costo_total, cms_req, ecm, raza, estado_prod,
     title_style = ParagraphStyle(
         'TitleStyle',
         parent=styles['Heading1'],
-        fontSize=18,
+        fontSize=16,
         textColor=colors.HexColor('#054A29'),
-        spaceAfter=8
+        spaceAfter=6
     )
     
     subtitle_style = ParagraphStyle(
@@ -35,23 +35,24 @@ def generar_pdf_tmr(df_resultados, costo_total, cms_req, ecm, raza, estado_prod,
         parent=styles['Normal'],
         fontSize=9,
         textColor=colors.HexColor('#555555'),
-        spaceAfter=14
+        spaceAfter=12
     )
     
-    story.append(Paragraph("<b>LECHER-IA Pro — HOJA DE MEZCLADO TMR Y CERTIFICACIÓN AMBIENTAL</b>", title_style))
+    story.append(Paragraph("<b>LECHER-IA Pro — ESTADO FINANCIERO Y TMR OPERATIVA</b>", title_style))
     story.append(Paragraph(f"<b>Formulador:</b> Dr. Alejandro Castañeda Correa &nbsp;|&nbsp; <b>Perfil:</b> {raza} ({estado_prod}) &nbsp;|&nbsp; <b>Corral:</b> {tam_corral} vacas", subtitle_style))
-    story.append(Spacer(1, 5))
+    story.append(Spacer(1, 4))
     
+    # Resumen Financiero Ejecutivo
     summary_text = (
-        f"<b>CMS:</b> {cms_req:.2f} kg MS &nbsp;|&nbsp; "
-        f"<b>ECM:</b> {ecm:.2f} kg &nbsp;|&nbsp; "
-        f"<b>Costo:</b> ${costo_total:.2f} MXN &nbsp;|&nbsp; "
-        f"<b>IOFC:</b> ${iofc:.2f} MXN &nbsp;|&nbsp; "
-        f"<b>CH₄:</b> {ch4_vaca:.1f} g/día &nbsp;|&nbsp; "
-        f"<b>N Excretado:</b> {n_exc_vaca:.1f} g/día"
+        f"<b>Costo Alimento/Vaca:</b> ${costo_alimento:.2f} MXN &nbsp;|&nbsp; "
+        f"<b>Costo Total/L:</b> ${costo_total_litro:.2f} MXN &nbsp;|&nbsp; "
+        f"<b>Punto Equilibrio:</b> {break_even_leche:.1f} L/vaca<br>"
+        f"<b>IOFC/Vaca:</b> ${iofc:.2f} MXN/día &nbsp;|&nbsp; "
+        f"<b>EBITDA Corral/Mes:</b> ${ebitda_diario * tam_corral * 30:,.2f} MXN &nbsp;|&nbsp; "
+        f"<b>Huella CH₄:</b> {ch4_vaca:.1f} g/día"
     )
     story.append(Paragraph(summary_text, styles['Normal']))
-    story.append(Spacer(1, 12))
+    story.append(Spacer(1, 10))
     
     table_data = [["Ingrediente", "MS %", "Base Seca (kg/vaca)", "Base Fresca (kg/vaca)", f"Carga Corral ({tam_corral} vacas)"]]
     for _, row in df_resultados.iterrows():
@@ -63,21 +64,21 @@ def generar_pdf_tmr(df_resultados, costo_total, cms_req, ecm, raza, estado_prod,
             f"{row['Total Corral (kg)']:.1f} kg"
         ])
         
-    t = Table(table_data, colWidths=[150, 60, 100, 100, 120])
+    t = Table(table_data, colWidths=[150, 50, 100, 100, 120])
     t.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#137547')),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
         ('FONTSIZE', (0, 0), (-1, 0), 9),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 5),
         ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F8F9FA')),
         ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#DDDDDD')),
         ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
     ]))
     
     story.append(t)
-    story.append(Spacer(1, 15))
-    story.append(Paragraph("<i>Motor BMMCO (Stoichiometric Methane & Nitrogen Engine) integrado bajo normativas NASEM (2021) y Journal of Dairy Science.</i>", styles['Normal']))
+    story.append(Spacer(1, 12))
+    story.append(Paragraph("<i>Análisis bio-económico y financiero automatizado por Lecher-IA Pro under NASEM 2021 standards.</i>", styles['Normal']))
     
     doc.build(story)
     buffer.seek(0)
@@ -100,15 +101,15 @@ with col_logo:
         ">
             <span style="font-size: 38px; line-height: 1;">🧬🐮</span>
             <div style="font-size: 15px; font-weight: 800; letter-spacing: 1.5px; margin-top: 4px; text-transform: uppercase;">LECHER-IA</div>
-            <div style="font-size: 9px; font-weight: 500; opacity: 0.85; letter-spacing: 0.8px;">BIO-ECONOMY & CARBON ENGINE</div>
+            <div style="font-size: 9px; font-weight: 500; opacity: 0.85; letter-spacing: 0.8px;">FINANCIAL & BIO-ENGINEERING</div>
         </div>
         """,
         unsafe_allow_html=True
     )
 
 with col_titulo:
-    st.title("Lecher-IA Pro — Bio-Optimización y Sostenibilidad (NASEM 2021)")
-    st.markdown("<h4 style='color: #2A9D8F; margin-top: -15px; font-weight: 600;'>Precisión nutricional, rentabilidad y mitigación de metano en una sola plataforma.</h4>", unsafe_allow_html=True)
+    st.title("Lecher-IA Pro — Evaluación Bio-Económica y Financiera Integral")
+    st.markdown("<h4 style='color: #2A9D8F; margin-top: -15px; font-weight: 600;'>Precisión nutricional, costos de producción y rentabilidad del negocio lechero.</h4>", unsafe_allow_html=True)
     st.markdown("<small style='color: #666;'>Diseñada y creada por el <b>Dr. Alejandro Castañeda Correa</b>.</small>", unsafe_allow_html=True)
 
 st.markdown("---")
@@ -131,13 +132,12 @@ elif "Media" in estado_productivo:
 else:
     dim = st.sidebar.slider("Días en Leche (DIM)", 201, 305, 250, 5)
 
-sem_gestacion = st.sidebar.slider("Semanas de Gestación", 0, 40, 0, 1)
 peso_def = 650 if "Holstein" in raza else (450 if "Jersey" in raza else 580)
 peso_vivo = st.sidebar.slider("Peso Vivo (kg)", 350, 850, peso_def, 10)
 bcs = st.sidebar.slider("Condición Corporal (BCS 1-5)", 2.25, 4.0, 3.0, 0.25)
 
 st.sidebar.markdown("---")
-st.sidebar.markdown("### 🌡️ Estrés Térmico (ITH)")
+st.sidebar.markdown("### 🌡️ Clima y Entorno")
 temp_amb = st.sidebar.slider("Temperatura Ambiental (°C)", -5, 42, 22, 1)
 humedad_rel = st.sidebar.slider("Humedad Relativa (%)", 20, 100, 50, 5)
 
@@ -188,22 +188,26 @@ pendf_min = st.sidebar.slider("peNDF Mínima (% en MS)", 14.0, 24.0, 18.0, 0.5)
 starch_max = st.sidebar.slider("Almidón Máximo (% MS - Prev. SARA)", 20.0, 32.0, 27.0, 0.5)
 ee_max = st.sidebar.slider("Grasa Total / EE Máxima (% MS)", 3.5, 7.0, 6.0, 0.5)
 
+# --- MÓDULO FINANCIERO Y ESTRUCTURA DE COSTOS DEL ESTABLO ---
 st.sidebar.markdown("---")
-st.sidebar.markdown("### 🏬 Operativa de Corral y Economía")
-tam_corral = st.sidebar.number_input("Tamaño del Corral (N° de Vacas)", min_value=1, max_value=1000, value=80, step=5)
-precio_leche = st.sidebar.number_input("Precio de la Leche (MXN / L)", min_value=5.0, max_value=20.0, value=10.50, step=0.10)
+st.sidebar.markdown("### 💵 5. Estructura Financiera del Establo")
 
-if ith > 72:
-    st.sidebar.warning(f"🔥 **Estrés Térmico Detectado (ITH: {ith:.1f}):** Se aplicó depresión de consumo e incremento energético.")
+tam_corral = st.sidebar.number_input("Tamaño del Corral / Hato (Vacas)", min_value=1, max_value=2000, value=100, step=10)
+precio_leche_base = st.sidebar.number_input("Precio Base Leche (MXN / L)", min_value=5.0, max_value=20.0, value=10.50, step=0.10)
+bonif_solidos = st.sidebar.number_input("Bonificación Sólidos (MXN / L)", min_value=0.00, max_value=3.00, value=0.40, step=0.05)
+precio_leche_total = precio_leche_base + bonif_solidos
 
-st.markdown(f"""
-> **Resumen Fisiológico ({raza} | {estado_productivo} | ITH: {ith:.1f}):**  
-> **ECM:** `{ecm:.2f} kg/día` &bull; **CMS Estimado NASEM:** `{cms_estimado_nasem} kg MS/día` &bull; **NEL Req:** `{nel_req} Mcal/kg MS`
-""")
+st.sidebar.markdown("**Costos Operativos Directos e Indirectos (MXN/vaca/día):**")
+costo_mano_obra = st.sidebar.number_input("Mano de Obra y Salarios", min_value=0.0, max_value=100.0, value=18.0, step=1.0)
+costo_salud_vet = st.sidebar.number_input("Salud, Semen y Veterinaria", min_value=0.0, max_value=100.0, value=8.5, step=0.5)
+costo_energia_serv = st.sidebar.number_input("Energía, Diésel y Servicios", min_value=0.0, max_value=100.0, value=12.0, step=1.0)
+costos_fijos_admin = st.sidebar.number_input("Costos Fijos y Depreciaciones", min_value=0.0, max_value=200.0, value=15.0, step=1.0)
 
-# --- MÓDULO 2: BASE DE DATOS Y MATRIZ NUTRICIONAL CON VARIABLES DE METANO Y NITRÓGENO ---
+ingresos_extras_subproductos = st.sidebar.number_input("Ingresos Extras (Venta Terneros/Estiércol MXN/vaca/día)", min_value=0.0, max_value=50.0, value=4.0, step=0.5)
+
+# --- MÓDULO 2: BASE DE DATOS Y MATRIZ NUTRICIONAL ---
 st.subheader("🌾 2. Matriz Nutricional, Estequiometría y Disponibilidad de Insumos")
-st.caption("Matriz avanzada con coeficientes de fermentación ruminal para el cálculo en tiempo real de metano y nitrógeno excretado.")
+st.caption("Matriz de insumos con actualización de precios y composición ruminal.")
 
 datos_base = {
     "Ingrediente": ["Silo de Maíz", "Heno de Alfalfa", "Maíz Molido", "Sorgo Grano", "Pasta de Soya", "DDGS Maíz", "Melasa Caña", "Salvado Trigo", "Grasa Sobrepaso", "Carbonato Calcio"],
@@ -221,10 +225,6 @@ datos_base = {
     "EE": [3.2, 2.1, 3.8, 3.1, 1.5, 9.5, 0.1, 4.0, 99.0, 0.0],
     "Ca": [0.25, 1.40, 0.03, 0.04, 0.35, 0.15, 0.90, 0.12, 0.00, 38.0],
     "P": [0.20, 0.25, 0.28, 0.29, 0.65, 0.75, 0.10, 0.95, 0.00, 0.02],
-    "K": [1.10, 2.20, 0.35, 0.38, 2.10, 0.85, 3.20, 1.20, 0.00, 0.00],
-    "Na": [0.01, 0.10, 0.02, 0.02, 0.03, 0.20, 0.15, 0.04, 0.00, 0.00],
-    "Cl": [0.18, 0.55, 0.05, 0.09, 0.08, 0.15, 1.10, 0.10, 0.00, 0.00],
-    "S": [0.12, 0.28, 0.09, 0.11, 0.42, 0.45, 0.50, 0.21, 0.00, 0.00],
     "Min_Inclusion": [3.0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
     "Max_Inclusion": [25.0, 16.0, 15.0, 12.0, 12.0, 8.0, 4.0, 6.0, 1.5, 0.8]
 }
@@ -234,7 +234,7 @@ editable_df = st.data_editor(df_ingredientes, num_rows="fixed")
 
 # --- MÓDULO 3: MOTOR DE OPTIMIZACIÓN LINEAL (PuLP) ---
 st.markdown("---")
-if st.button("🚀 Ejecutar Optimización Bio-Económica (BMMCO Engine)"):
+if st.button("🚀 Ejecutar Optimización Bio-Económica y Financiera"):
     try:
         prob = pulp.LpProblem("LecherIA_Precision_Diet", pulp.LpMinimize)
         
@@ -272,10 +272,10 @@ if st.button("🚀 Ejecutar Optimización Bio-Económica (BMMCO Engine)"):
         prob.solve()
         
         if prob.status == 1:
-            st.success("✅ ¡Dieta Bio-Optimizada con Éxito (Mínimo Costo + Huella Ambiental Mínima)!")
+            st.success("✅ ¡Dieta Bio-Optimizada y Modelo Financiero Procesado Exitosamente!")
             
             resultados = []
-            costo_total = 0
+            costo_alimento = 0
             nel_sum, mp_sum, rdp_sum, rup_sum, pendf_sum, starch_sum, ee_sum = 0, 0, 0, 0, 0, 0, 0
             pc_total_g = 0
             fdn_total_kg = 0
@@ -285,7 +285,7 @@ if st.button("🚀 Ejecutar Optimización Bio-Económica (BMMCO Engine)"):
                 cantidad = variables[ing].varValue
                 if cantidad and cantidad > 0.001:
                     costo_parcial = cantidad * float(row["Costo"])
-                    costo_total += costo_parcial
+                    costo_alimento += costo_parcial
                     nel_sum += cantidad * float(row["NEL"])
                     mp_sum += cantidad * float(row["MP"])
                     rdp_sum += cantidad * (float(row["RDP"]) / 100.0)
@@ -314,50 +314,64 @@ if st.button("🚀 Ejecutar Optimización Bio-Económica (BMMCO Engine)"):
                     
             df_res = pd.DataFrame(resultados)
             
+            # --- CÁLCULOS FINANCIEROS Y MODELO P&L INTEGRAL ---
+            costo_opex_no_alimento = costo_mano_obra + costo_salud_vet + costo_energia_serv + costos_fijos_admin
+            costo_total_diario_vaca = costo_alimento + costo_opex_no_alimento
+            
+            ingreso_leche_vaca = prod_leche * precio_leche_total
+            ingreso_total_vaca = ingreso_leche_vaca + ingresos_extras_subproductos
+            
+            iofc = ingreso_leche_vaca - costo_alimento
+            ebitda_vaca_dia = ingreso_total_vaca - costo_total_diario_vaca
+            ebitda_corral_mes = ebitda_vaca_dia * tam_corral * 30.5
+            
+            costo_por_litro = costo_total_diario_vaca / prod_leche
+            margen_neto_pct = (ebitda_vaca_dia / ingreso_total_vaca) * 100
+            
+            # Punto de Equilibrio de Producción (Litros de leche necesarios para cubrir OpEx Total)
+            break_even_leche = (costo_total_diario_vaca - ingresos_extras_subproductos) / precio_leche_total
+            
             # --- CÁLCULO ESTEQUIOMÉTRICO BMMCO (Metano y Nitrógeno) ---
             ch4_vaca = (fdn_total_kg * 0.55 * 38.0) + ((starch_sum / 100.0 * cms_req) * 0.85 * 22.0)
             intensidad_ch4 = ch4_vaca / ecm
-            
             n_consumido = pc_total_g / 6.25
             n_leche = (prod_leche * (pct_proteina / 100.0) * 1000.0) / 6.38
             n_excretado = max(30.0, n_consumido - n_leche - 25.0)
             
-            # --- MÓDULO 4: KPIS Y ANALÍTICA BIOLÓGICA ---
-            ingreso_leche = prod_leche * precio_leche
-            iofc = ingreso_leche - costo_total
-            eficiencia_fca = prod_leche / cms_req
-            
             col_tabla, col_resumen = st.columns([3.2, 1.8])
             
             with col_tabla:
-                st.markdown("### 🧮 3. Ración Bio-Optimizada y Escala TMR de Campo")
-                
-                # Renderizado corregido y dinámico del DataFrame
+                st.markdown("### 🧮 3. Ración Optimizada y Hoja de Carga TMR")
                 st.dataframe(
                     df_res[["Ingrediente", "MS %", "Inclusión (kg MS)", "% en la Dieta (MS)", "Base Fresca (kg/vaca)", "Total Corral (kg)"]], 
                     use_container_width=True
                 )
                 
-                pdf_buffer = generar_pdf_tmr(df_res, costo_total, cms_req, ecm, raza, estado_productivo, tam_corral, precio_leche, iofc, ch4_vaca, n_excretado)
+                pdf_buffer = generar_pdf_tmr_financiero(
+                    df_res, costo_alimento, cms_req, ecm, raza, estado_productivo, 
+                    tam_corral, precio_leche_total, iofc, ebitda_vaca_dia, 
+                    costo_por_litro, break_even_leche, ch4_vaca, n_excretado
+                )
+                
                 st.download_button(
-                    label="📄 Descargar Hoja TMR y Certificación Ambiental en PDF",
+                    label="📄 Descargar Estado Financiero y TMR en PDF",
                     data=pdf_buffer,
-                    file_name=f"TMR_Sostenible_LecherIA_{raza}_{dim}DIM.pdf",
+                    file_name=f"Reporte_Financiero_LecherIA_{raza}_{dim}DIM.pdf",
                     mime="application/pdf"
                 )
 
             with col_resumen:
-                st.markdown("### 📊 4. KPIs Financieros y Ambientales (BMMCO)")
-                st.metric("Costo Diario / Vaca", f"${costo_total:.2f} MXN")
-                st.metric("IOFC (Margen sobre Alimento)", f"${iofc:.2f} MXN/vaca/día", f"Leche: ${precio_leche:.2f}/L")
-                st.metric("Metano Entérico Estimado", f"{ch4_vaca:.1f} g CH₄/día", f"Intensidad: {intensidad_ch4:.1f} g/kg ECM")
-                st.metric("Excreción Nitrogenada (N)", f"{n_excretado:.1f} g N/día", "Protección de mantos acuíferos")
-                st.metric("Eficiencia Alimenticia (FCA)", f"{eficiencia_fca:.2f} kg Leche/kg CMS")
-                st.metric("NEL Consumida", f"{nel_sum/cms_req:.2f} Mcal/kg", f"Meta: {nel_req}")
+                st.markdown("### 📊 4. KPIs Financieros y Estado de Resultados (P&L)")
+                st.metric("Costo Alimento / Vaca", f"${costo_alimento:.2f} MXN", f"{(costo_alimento/costo_total_diario_vaca)*100:.1f}% del costo total")
+                st.metric("Costo OpEx Total / Vaca", f"${costo_total_diario_vaca:.2f} MXN", f"Costo/Litro: ${costo_por_litro:.2f} MXN")
+                st.metric("IOFC (Margen Alimento)", f"${iofc:.2f} MXN/vaca/día", f"Precio Leche: ${precio_leche_total:.2f}/L")
+                st.metric("EBITDA Mensual del Corral", f"${ebitda_corral_mes:,.2f} MXN", f"Margen Neto: {margen_neto_pct:.1f}%")
+                st.metric("Punto de Equilibrio (Leche)", f"{break_even_leche:.2f} L/vaca/día", f"Producción Actual: {prod_leche:.1f} L")
+                st.metric("Metano Entérico (CH₄)", f"{ch4_vaca:.1f} g CH₄/día", f"Intensidad: {intensidad_ch4:.1f} g/kg ECM")
 
-            # --- MODELACIÓN PRODUCTIVA DE WOOD Y BALANCE ENERGÉTICO ---
+            # --- MODELACIÓN PRODUCTIVA Y BALANCE FINANCIERO DENSITARIO ---
             st.markdown("---")
-            st.subheader(f"📈 4. Predicción Productiva y Balance Energético a 305 Días — {raza}")
+            st.subheader(f"📈 5. Proyección Productiva y Económica a 305 Días — {raza}")
             
             dias_lactancia = np.arange(1, 306)
             a_factor = prod_leche / ((dim ** 0.2) * np.exp(-0.003 * dim))
@@ -365,30 +379,27 @@ if st.button("🚀 Ejecutar Optimización Bio-Económica (BMMCO Engine)"):
             
             cms_predicho = ((0.022 * peso_vivo) + (0.38 * ((0.327 * produccion_predicha) + (12.95 * (produccion_predicha * (pct_grasa / 100.0)))))) * factor_raza_cms * (1 - np.exp(-0.04 * dias_lactancia)) * factor_estres_cms
             
-            nel_aportada = cms_predicho * (nel_sum / cms_req)
-            nel_mantenimiento_dinamico = coef_mantenimiento * (peso_vivo ** 0.75) * factor_estres_energetico
-            nel_requerida_total = nel_mantenimiento_dinamico + (0.70 * produccion_predicha)
+            ingreso_predicho = produccion_predicha * precio_leche_total
+            costo_alimento_predicho = cms_predicho * (costo_alimento / cms_req)
+            iofc_predicho = ingreso_predicho - costo_alimento_predicho
             
             df_curvas = pd.DataFrame({
                 "Día de Lactancia": dias_lactancia,
-                "Producción Leche Estimada (kg/día)": np.round(produccion_predicha, 2),
-                "Consumo MS Estimado (kg/día)": np.round(cms_predicho, 2),
-                "Energía Aportada (Mcal NEL)": np.round(nel_aportada, 2),
-                "Energía Requerida Total (Mcal NEL)": np.round(nel_requerida_total, 2)
+                "Producción Leche Estimada (L/día)": np.round(produccion_predicha, 2),
+                "Ingreso Leche ($ MXN)": np.round(ingreso_predicho, 2),
+                "Costo Alimento ($ MXN)": np.round(costo_alimento_predicho, 2),
+                "IOFC Margen ($ MXN)": np.round(iofc_predicho, 2)
             }).set_index("Día de Lactancia")
             
-            tab1, tab2 = st.tabs(["📉 Curva de Lactancia & CMS", "⚡ Balance Energético (Mcal NEL)"])
+            tab1, tab2 = st.tabs(["📉 Curva de Lactancia & Ingresos", "💰 Trayectoria del Margen IOFC ($)"])
             
             with tab1:
-                st.line_chart(df_curvas[["Producción Leche Estimada (kg/día)", "Consumo MS Estimado (kg/día)"]])
-                st.info(f"📍 **Evaluación actual:** Día {dim} de lactancia | Producción: **{prod_leche} kg/día** | Consumo estimado: **{cms_predicho[dim-1]:.1f} kg MS/día**")
+                st.line_chart(df_curvas[["Producción Leche Estimada (L/día)", "Ingreso Leche ($ MXN)"]])
+                st.info(f"📍 **Evaluación actual:** Día {dim} | Producción: **{prod_leche} L/día** | Ingreso diario/vaca: **${ingreso_leche_vaca:.2f} MXN**")
 
             with tab2:
-                st.line_chart(df_curvas[["Energía Aportada (Mcal NEL)", "Energía Requerida Total (Mcal NEL)"]])
-                if dim < 60:
-                    st.warning("⚠️ **Lactancia Temprana:** La vaca está en Balance Energético Negativo (BEN). Moviliza reservas corporales.")
-                else:
-                    st.success("✅ **Balance Energético Positivo:** Cubre requerimientos de producción y recuperación corporal.")
+                st.line_chart(df_curvas[["IOFC Margen ($ MXN)", "Costo Alimento ($ MXN)"]])
+                st.success(f"✅ **Margen Acumulado Estimado a 305 Días:** **${df_curvas['IOFC Margen ($ MXN)'].sum():,.2f} MXN** por vaca.")
 
         else:
             st.error("⚠️ **No se encontró solución factible.** Habilita más insumos o ajusta los límites en la matriz.")
@@ -396,12 +407,12 @@ if st.button("🚀 Ejecutar Optimización Bio-Económica (BMMCO Engine)"):
     except Exception as e:
         st.error(f"Ocurrió un error al procesar el modelo matemático: {e}")
 
-# --- 5. PIE DE PÁGINA INSTITUCIONAL ---
+# --- 6. PIE DE PÁGINA INSTITUCIONAL ---
 st.markdown("---")
 st.markdown(
     """
     <div style='text-align: center; color: gray; font-size: 12px;'>
-        <strong>Lecher-IA Pro</strong> &bull; Sistema Avanzado de Optimización Nutricional Bovina<br>
+        <strong>Lecher-IA Pro</strong> &bull; Sistema Avanzado de Optimización Nutricional y Financiera Bovina<br>
         Diseñado y creado por el <strong>Dr. Alejandro Castañeda Correa</strong>.
     </div>
     """, 
