@@ -109,7 +109,7 @@ st.markdown("---")
 
 # --- MÓDULO DE AGENDAMIENTO, PAGO Y TELEMEDICINA EN LA MISMA APP ---
 st.sidebar.markdown("## 🩺 Consultoría & Telemedicina")
-st.sidebar.caption("Agenda una videoconsulta técnica con el **Dr. Alejandro Castañeda Correa**.")
+st.sidebar.caption("Agenda una videoconsulta técnica de 30 min con el **Dr. Alejandro Castañeda Correa**.")
 
 with st.sidebar.expander("📅 Agendar Cita y Pago ($475.00 MXN)", expanded=not st.session_state.cita_pagada):
     nombre_productor = st.text_input("Nombre del Productor / Establo", value="Ganadería Zacatecas")
@@ -119,7 +119,7 @@ with st.sidebar.expander("📅 Agendar Cita y Pago ($475.00 MXN)", expanded=not 
     
     st.markdown("---")
     st.markdown("💳 **Resumen del Servicio:**")
-    st.markdown("• **Asesoría Nutricional y Clínica** (60 min)<br>• **Costo:** **$475.00 MXN**", unsafe_allow_html=True)
+    st.markdown("• **Asesoría Nutricional y Clínica** (30 min)<br>• **Costo:** **$475.00 MXN**", unsafe_allow_html=True)
     
     metodo_pago = st.selectbox("Método de Pago", ["Tarjeta de Crédito / Débito", "Transferencia SPEI", "PayPal"])
     
@@ -136,17 +136,16 @@ with st.sidebar.expander("📅 Agendar Cita y Pago ($475.00 MXN)", expanded=not 
 if st.session_state.cita_pagada:
     st.sidebar.markdown("---")
     st.sidebar.success(f"🟢 **Cita Agendada para:** {st.session_state.detalles_cita.get('productor')}")
-    st.sidebar.info(f"📅 **Fecha:** {st.session_state.detalles_cita.get('fecha')} a las {st.session_state.detalles_cita.get('hora')}")
+    st.sidebar.info(f"📅 **Fecha:** {st.session_state.detalles_cita.get('fecha')} a las {st.session_state.detalles_cita.get('hora')} (30 min)")
     
     if st.sidebar.button("🎥 Iniciar Videollamada en la Aplicación"):
         st.session_state.ver_videollamada = not st.session_state.ver_videollamada
 
 # DESPLIEGUE DEL IFRAME DE VIDEOLLAMADA DENTRO DE LA MISMA PÁGINA
 if st.session_state.ver_videollamada:
-    st.markdown("### 🎥 Sala Virtual de Telemedicina Bovina")
+    st.markdown("### 🎥 Sala Virtual de Telemedicina Bovina (30 Minutos)")
     st.info(f"👨‍⚕️ **Consulta Activa:** Dr. Alejandro Castañeda Correa | **Atendiendo a:** {st.session_state.detalles_cita.get('productor')}")
     
-    # Integración de sala interactiva embebida (iFrame WebRTC) dentro de Streamlit
     room_id = f"LecherIA_Consultoria_{st.session_state.detalles_cita.get('fecha').replace('-', '')}"
     jitsi_html = f"""
         <iframe src="https://meet.jit.si/{room_id}#config.prejoinPageEnabled=false" 
@@ -294,7 +293,7 @@ ingresos_extras_subproductos = st.sidebar.number_input("Ingresos Extras (MXN/vac
 
 # --- MÓDULO 2: BASE DE DATOS Y MATRIZ NUTRICIONAL ---
 st.subheader("🌾 2. Matriz Nutricional, Visión AI y Disponibilidad de Insumos")
-st.caption(f"Peso Actual por IA: **{peso_vivo} kg** | pH Ruminal IoT: **{iot_ph_rumen}** | Telemedicina: **{'Activa' if st.session_state.cita_pagada else 'Pendiente'}**")
+st.caption(f"Peso Actual por IA: **{peso_vivo} kg** | pH Ruminal IoT: **{iot_ph_rumen}** | Telemedicina (30 min): **{'Activa' if st.session_state.cita_pagada else 'Pendiente'}**")
 
 datos_base = {
     "Ingrediente": ["Silo de Maíz", "Heno de Alfalfa", "Maíz Molido", "Sorgo Grano", "Pasta de Soya", "DDGS Maíz", "Melasa Caña", "Salvado Trigo", "Grasa Sobrepaso", "Carbonato Calcio"],
