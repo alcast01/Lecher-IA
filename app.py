@@ -7,6 +7,7 @@ import json
 import cv2
 from PIL import Image
 from datetime import datetime, timedelta
+import streamlit.components.v1 as components
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -19,12 +20,13 @@ st.set_page_config(
     layout="wide"
 )
 
-# Inicializar estados de sesión para autenticación y citas
-if "autenticado" not in st.session_state:
-    st.session_state.autenticado = False
-    st.session_state.usuario = ""
+# Inicializar estados de sesión para citas y telemedicina
+if "cita_pagada" not in st.session_state:
     st.session_state.cita_pagada = False
+if "detalles_cita" not in st.session_state:
     st.session_state.detalles_cita = {}
+if "ver_videollamada" not in st.session_state:
+    st.session_state.ver_videollamada = False
 
 # --- MÓDULO 5: REPORTE OPERATIVO, FINANCIERO E IOT EN PDF ---
 def generar_pdf_tmr_financiero(df_resultados, costo_alimento, cms_req, ecm, raza, estado_prod, tam_corral, precio_leche, iofc, ebitda_diario, costo_total_litro, break_even_leche, ch4_vaca, n_exc_vaca, iot_status):
@@ -99,98 +101,63 @@ with col_logo:
     )
 
 with col_titulo:
-    st.title("Lecher-IA Pro — Nutrición de Precisión y Clínica Virtual")
-    st.markdown("<h4 style='color: #2A9D8F; margin-top: -15px; font-weight: 600;'>Plataforma integral de formulación, telemetría y consultoría veterinaria especializada.</h4>", unsafe_allow_html=True)
+    st.title("Lecher-IA Pro — Nutrición de Precisión y Telemedicina Bovina")
+    st.markdown("<h4 style='color: #2A9D8F; margin-top: -15px; font-weight: 600;'>Plataforma abierta de formulación, telemetría y consultas a distancia en tiempo real.</h4>", unsafe_allow_html=True)
     st.markdown("<small style='color: #666;'>Diseñada y creada por el <b>Dr. Alejandro Castañeda Correa</b>.</small>", unsafe_allow_html=True)
 
 st.markdown("---")
 
-# --- MÓDULO DE AUTENTICACIÓN Y CLINICA VIRTUAL (SIDEBAR) ---
-st.sidebar.markdown("## 🔐 Portal de Cliente & Telemedicina")
+# --- MÓDULO DE AGENDAMIENTO, PAGO Y TELEMEDICINA EN LA MISMA APP ---
+st.sidebar.markdown("## 🩺 Consultoría & Telemedicina")
+st.sidebar.caption("Agenda una videoconsulta técnica con el **Dr. Alejandro Castañeda Correa**.")
 
-if not st.session_state.autenticado:
-    tab_auth1, tab_auth2 = st.sidebar.tabs(["Iniciar Sesión", "Registrarse"])
-    
-    with tab_auth1:
-        email_login = st.text_input("Correo Electrónico", key="login_email")
-        pass_login = st.text_input("Contraseña", type="password", key="login_pass")
-        if st.button("Entrar a Lecher-IA"):
-            if email_login:
-                st.session_state.autenticado = True
-                st.session_state.usuario = email_login
-                st.success(f"¡Bienvenido, {email_login}!")
-                st.rerun()
-            else:
-                st.warning("Ingrese su correo electrónico.")
-                
-    with tab_auth2:
-        nombre_reg = st.text_input("Nombre Completo / Establo")
-        email_reg = st.text_input("Correo Electrónico", key="reg_email")
-        pass_reg = st.text_input("Contraseña", type="password", key="reg_pass")
-        if st.button("Crear Cuenta"):
-            if nombre_reg and email_reg:
-                st.session_state.autenticado = True
-                st.session_state.usuario = nombre_reg
-                st.success("¡Cuenta creada y sesión iniciada con éxito!")
-                st.rerun()
-            else:
-                st.warning("Complete todos los campos de registro.")
-    st.stop()
-else:
-    st.sidebar.success(f"👤 **Sesión Activa:** {st.session_state.usuario}")
-    if st.sidebar.button("Cerrar Sesión"):
-        st.session_state.autenticado = False
-        st.session_state.usuario = ""
-        st.session_state.cita_pagada = False
-        st.rerun()
-
-st.sidebar.markdown("---")
-
-# --- MÓDULO DE AGENDAMIENTO, PAGO Y VIDEOCONSULTA ---
-st.sidebar.markdown("## 🩺 Clínica Virtual & Citas")
-st.sidebar.caption("Agenda una consultoría técnica personalizada con el **Dr. Alejandro Castañeda Correa**.")
-
-with st.sidebar.expander("📅 Agendar y Pagar Consulta ($475 MXN)", expanded=not st.session_state.cita_pagada):
+with st.sidebar.expander("📅 Agendar Cita y Pago ($475.00 MXN)", expanded=not st.session_state.cita_pagada):
+    nombre_productor = st.text_input("Nombre del Productor / Establo", value="Ganadería Zacatecas")
     fecha_cita = st.date_input("Fecha de Consulta", min_value=datetime.today().date())
     hora_cita = st.time_input("Hora Preferida", value=datetime.strptime("10:00", "%H:%M").time())
-    motivo_consulta = st.text_area("Motivo o Diagnóstico Requerido", "Evaluación de ración TMR y eficiencia de hato.")
+    motivo_consulta = st.text_area("Motivo de la Consulta", "Revisión de ración TMR y balance energético.")
     
     st.markdown("---")
-    st.markdown("💳 **Resumen de Pago:**")
-    st.markdown("• **Servicio:** Asesoría Nutricional y Clínica Bovina (60 min)<br>• **Especialista:** Dr. Alejandro Castañeda Correa<br>• **Total a Pagar:** **$475.00 MXN**", unsafe_allow_html=True)
+    st.markdown("💳 **Resumen del Servicio:**")
+    st.markdown("• **Asesoría Nutricional y Clínica** (60 min)<br>• **Costo:** **$475.00 MXN**", unsafe_allow_html=True)
     
-    metodo_pago = st.selectbox("Método de Pago", ["Tarjeta de Crédito / Débito (Stripe)", "Transferencia SPEI", "PayPal"])
+    metodo_pago = st.selectbox("Método de Pago", ["Tarjeta de Crédito / Débito", "Transferencia SPEI", "PayPal"])
     
-    if st.button("Pagar $475 MXN y Confirmar Cita"):
+    if st.button("💳 Pagar $475 MXN y Confirmar Cita"):
         st.session_state.cita_pagada = True
         st.session_state.detalles_cita = {
+            "productor": nombre_productor,
             "fecha": str(fecha_cita),
             "hora": str(hora_cita),
             "motivo": motivo_consulta
         }
-        st.success("✅ ¡Pago procesado exitosamente y cita agendada en el calendario del especialista!")
+        st.success("✅ ¡Pago confirmado y cita agendada con éxito!")
 
 if st.session_state.cita_pagada:
     st.sidebar.markdown("---")
-    st.sidebar.markdown("🟢 **Cita Agendada:**")
+    st.sidebar.success(f"🟢 **Cita Agendada para:** {st.session_state.detalles_cita.get('productor')}")
     st.sidebar.info(f"📅 **Fecha:** {st.session_state.detalles_cita.get('fecha')} a las {st.session_state.detalles_cita.get('hora')}")
     
-    if st.sidebar.button("🎥 Entrar a Videollamada"):
-        st.sidebar.success("🔗 Redirigiendo a la sala virtual segura con el Dr. Alejandro Castañeda...")
-        st.markdown(
-            """
-            <div style="background: #E8F5E9; padding: 20px; border-radius: 12px; border: 2px solid #2E7D32; text-align: center; margin-bottom: 20px;">
-                <h3 style="color: #1B5E20; margin-top: 0;">🎥 Sala de Telemedicina Veterinaria Activa</h3>
-                <p>Conectado con el especialista <b>Dr. Alejandro Castañeda Correa</b>.</p>
-                <a href="https://meet.jit.si/LecherIAParaderoClinicaVirtual" target="_blank">
-                    <button style="background: #2E7D32; color: white; padding: 12px 24px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">
-                        🚀 Abrir Videollamada Segura en Nueva Pestaña
-                    </button>
-                </a>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+    if st.sidebar.button("🎥 Iniciar Videollamada en la Aplicación"):
+        st.session_state.ver_videollamada = not st.session_state.ver_videollamada
+
+# DESPLIEGUE DEL IFRAME DE VIDEOLLAMADA DENTRO DE LA MISMA PÁGINA
+if st.session_state.ver_videollamada:
+    st.markdown("### 🎥 Sala Virtual de Telemedicina Bovina")
+    st.info(f"👨‍⚕️ **Consulta Activa:** Dr. Alejandro Castañeda Correa | **Atendiendo a:** {st.session_state.detalles_cita.get('productor')}")
+    
+    # Integración de sala interactiva embebida (iFrame WebRTC) dentro de Streamlit
+    room_id = f"LecherIA_Consultoria_{st.session_state.detalles_cita.get('fecha').replace('-', '')}"
+    jitsi_html = f"""
+        <iframe src="https://meet.jit.si/{room_id}#config.prejoinPageEnabled=false" 
+                height="600px" 
+                width="100%" 
+                style="border: 2px solid #137547; border-radius: 12px;" 
+                allow="camera; microphone; display-capture; autoplay">
+        </iframe>
+    """
+    components.html(jitsi_html, height=620)
+    st.markdown("---")
 
 # --- MÓDULO DE VISIÓN ARTIFICIAL: ESTIMACIÓN DE PESO POR FOTOGRAFÍA ---
 st.sidebar.markdown("---")
@@ -327,7 +294,7 @@ ingresos_extras_subproductos = st.sidebar.number_input("Ingresos Extras (MXN/vac
 
 # --- MÓDULO 2: BASE DE DATOS Y MATRIZ NUTRICIONAL ---
 st.subheader("🌾 2. Matriz Nutricional, Visión AI y Disponibilidad de Insumos")
-st.caption(f"Usuario: **{st.session_state.usuario}** | Peso Actual por IA: **{peso_vivo} kg** | pH Ruminal IoT: **{iot_ph_rumen}**")
+st.caption(f"Peso Actual por IA: **{peso_vivo} kg** | pH Ruminal IoT: **{iot_ph_rumen}** | Telemedicina: **{'Activa' if st.session_state.cita_pagada else 'Pendiente'}**")
 
 datos_base = {
     "Ingrediente": ["Silo de Maíz", "Heno de Alfalfa", "Maíz Molido", "Sorgo Grano", "Pasta de Soya", "DDGS Maíz", "Melasa Caña", "Salvado Trigo", "Grasa Sobrepaso", "Carbonato Calcio"],
@@ -393,7 +360,7 @@ if st.button("🚀 Ejecutar Optimización con Visión AI & Telemetría"):
         prob.solve()
         
         if prob.status == 1:
-            st.success(f"✅ ¡Dieta Bio-Optimizada para {st.session_state.usuario} con Peso de {peso_vivo} kg!")
+            st.success(f"✅ ¡Dieta Bio-Optimizada con Peso de {peso_vivo} kg y Telemetría IoT!")
             
             resultados = []
             costo_alimento = 0
