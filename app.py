@@ -68,6 +68,7 @@ editable_df = st.data_editor(df_ingredientes, num_rows="fixed")
 
 if st.button("🚀 Ejecutar Optimización Avanzada"):
     try:
+        # Uso seguro de clases base de PuLP
         prob = pulp.LpProblem("Balance_Dietas_Avanzado", pulp.LpMinimize)
         
         variables = {}
@@ -89,7 +90,7 @@ if st.button("🚀 Ejecutar Optimización Avanzada"):
         # Resolver el modelo
         prob.solve()
         
-        # Validación de estado estricta por código numérico (1 = Optimal)
+        # Validación de estado estricta por código numérico de PuLP (1 = Óptimo)
         if prob.status == 1:
             st.success("✅ ¡Dieta formulada exitosamente bajo estándares científicos rigurosos!")
             
