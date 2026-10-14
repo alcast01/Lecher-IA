@@ -49,6 +49,19 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# Definición global de las columnas oficiales del inventario
+COLUMNAS_HATO = [
+    "SINIGA", 
+    "Arete Interno", 
+    "Etapa Productiva", 
+    "DIM / Edad (días)", 
+    "Días Gestación", 
+    "Prod. Leche (L)", 
+    "pH Ruminal (IoT)", 
+    "Rumia (min/día)", 
+    "Estado Salud"
+]
+
 # Inicializar estados de sesión
 if "cita_pagada" not in st.session_state:
     st.session_state.cita_pagada = False
@@ -67,18 +80,7 @@ if "peso_cargado_actual" not in st.session_state:
 
 # --- BASE DE DATOS INICIAL COMPLETAMENTE VACÍA ---
 if "df_hato" not in st.session_state:
-    columnas_hato = [
-        "SINIGA", 
-        "Arete Interno", 
-        "Etapa Productiva", 
-        "DIM / Edad (días)", 
-        "Días Gestación", 
-        "Prod. Leche (L)", 
-        "pH Ruminal (IoT)", 
-        "Rumia (min/día)", 
-        "Estado Salud"
-    ]
-    st.session_state.df_hato = pd.DataFrame(columns=columnas_hato)
+    st.session_state.df_hato = pd.DataFrame(columns=COLUMNAS_HATO)
 
 # --- REPORTE OPERATIVO PDF NASEM 2021 ---
 def generar_pdf_tmr_financiero(df_resultados, costo_alimento, cms_req, ecm, raza, estado_prod, tam_corral, precio_leche, iofc, ebitda_diario, costo_total_litro, break_even_leche, ch4_vaca, n_exc_vaca, iot_status, mun_est, de_novo_fat):
@@ -308,7 +310,7 @@ with tab_inv:
             st.metric("Total de Animales en la Base de Datos", f"{len(df_ordenado)} / 3,000")
         with col_res2:
             if st.button("🗑️ Vaciar / Limpiar Base de Datos"):
-                st.session_state.df_hato = pd.DataFrame(columns=columnas_hato)
+                st.session_state.df_hato = pd.DataFrame(columns=COLUMNAS_HATO)
                 st.success("✅ Base de datos vaciada.")
                 st.rerun()
     else:
