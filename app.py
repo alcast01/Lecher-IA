@@ -15,7 +15,7 @@ from reportlab.lib import colors
 
 # --- 1. CONFIGURACIÓN DE PÁGINA & ESTILOS AVANZADOS ---
 st.set_page_config(
-    page_title="Lecher-IA Pro | Secure Enterprise PLF & Subscription Suite",
+    page_title="Lecher-IA Pro | User-Friendly PLF Suite",
     page_icon="🧬",
     layout="wide"
 )
@@ -51,18 +51,13 @@ st.markdown("""
         padding: 24px;
         text-align: center;
         box-shadow: 0 12px 24px rgba(5,74,41,0.25);
-        transform: scale(1.03);
     }
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
-    }
-    .stTabs [data-baseweb="tab"] {
-        height: 48px;
-        white-space: pre-wrap;
-        border-radius: 8px 8px 0px 0px;
-        padding-left: 16px;
-        padding-right: 16px;
-        font-weight: 600;
+    .nav-box {
+        background-color: #E8F5E9;
+        border-left: 5px solid #137547;
+        padding: 12px 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -80,7 +75,10 @@ COLUMNAS_HATO = [
     "Estado Salud"
 ]
 
-# --- INICIALIZACIÓN DE ESTADOS DE SESIÓN ---
+# --- INICIALIZACIÓN DE ESTADOS DE SESIÓN Y PASO PASO A PASO ---
+if "paso_actual" not in st.session_state:
+    st.session_state.paso_actual = 1  # 1: Planes, 2: Login/2FA, 3: App
+
 if "subscribed" not in st.session_state:
     st.session_state.subscribed = False
 if "plan_seleccionado" not in st.session_state:
@@ -109,11 +107,18 @@ if "df_hato" not in st.session_state:
 
 
 # =========================================================================
-# PASO 1 PRIMORDIAL: PASARELA DE PLANES Y SUSCRIPCIÓN (APARECE AL INICIO)
+# PASO 1: SUSCRIPCIÓN & PLANES (CON NAVEGACIÓN AMIGABLE)
 # =========================================================================
-if not st.session_state.subscribed:
+if not st.session_state.subscribed or st.session_state.paso_actual == 1:
+    st.progress(0.20)
+    st.markdown("""
+        <div class='nav-box'>
+            <h4 style='margin:0; color: #054A29;'>📌 Paso 1 de 3: Selección de Plan de Suscripción</h4>
+            <p style='margin:0; color: #555;'>Elige el plan que mejor se adapte a las necesidades de tu establo. Puedes cambiar o cancelar tu plan en cualquier momento.</p>
+        </div>
+    """, unsafe_allow_html=True)
+    
     st.markdown("<h1 style='text-align: center; color: #054A29;'>💎 Planes de Suscripción Lecher-IA Pro</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #555; font-size: 16px;'>Selecciona tu plan para desbloquear la plataforma líder en precisión bionutricional, modelos NASEM 2021 y control de hato.</p>", unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
     
     col_p1, col_p2, col_p3 = st.columns(3)
@@ -128,10 +133,10 @@ if not st.session_state.subscribed:
                 <h1 style='color: #137547;'>$1,495 <small style='font-size: 14px;'>MXN/mes</small></h1>
                 <p style='color: #888; font-size: 13px;'>Facturado cada 3 meses ($4,485 MXN total)</p>
         """, unsafe_allow_html=True)
-        if st.button("Seleccionar Plan 3 Meses", use_container_width=True):
+        if st.button("Seleccionar Plan 3 Meses ➔", use_container_width=True):
             st.session_state.subscribed = True
             st.session_state.plan_seleccionado = "3 Meses"
-            st.success("¡Suscripción Trimestral Seleccionada! Procede con el inicio de sesión seguro.")
+            st.session_state.paso_actual = 2
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
@@ -145,10 +150,10 @@ if not st.session_state.subscribed:
                 <h1 style='color: #137547;'>$1,195 <small style='font-size: 14px;'>MXN/mes</small></h1>
                 <p style='color: #888; font-size: 13px;'>Ahorras 20% ($7,170 MXN total)</p>
         """, unsafe_allow_html=True)
-        if st.button("Seleccionar Plan 6 Meses", use_container_width=True):
+        if st.button("Seleccionar Plan 6 Meses ➔", use_container_width=True):
             st.session_state.subscribed = True
             st.session_state.plan_seleccionado = "6 Meses"
-            st.success("¡Suscripción Semestral Seleccionada! Procede con el inicio de sesión seguro.")
+            st.session_state.paso_actual = 2
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
@@ -162,68 +167,94 @@ if not st.session_state.subscribed:
                 <hr style='border-color: rgba(255,255,255,0.2);'>
                 <h1 style='color: #FFFFFF;'>$795 <small style='font-size: 14px; color: #FFD700;'>MXN/mes</small></h1>
                 <p style='color: #FFD700; font-size: 14px; font-weight: 700;'>¡Ahorras 47% ($9,540 MXN anuales)! Pagas $9,540 MXN único.</p>
-                <p style='color: #E0E0E0; font-size: 12px; margin-top: 5px;'>Garantía de retención de precio por 3 años + Actualizaciones automáticas de Gemelo Digital.</p>
         """, unsafe_allow_html=True)
-        if st.button("🌟 SUSCRIBIRME 12 MESES (AHORRO VIP)", use_container_width=True):
+        if st.button("🌟 SUSCRIBIRME 12 MESES Y CONTINUAR ➔", use_container_width=True):
             st.session_state.subscribed = True
             st.session_state.plan_seleccionado = "12 Meses VIP"
+            st.session_state.paso_actual = 2
             st.balloons()
-            st.success("¡Suscripción Anual VIP Seleccionada con Éxito!")
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
-    st.info("💡 **Estrategia Nutri-ON & Lecher-IA:** El 85% de los productores lecheros de alto rendimiento eligen el **Plan Anual de 12 Meses** para asegurar consistencia estacional en sus fórmulas NASEM, evitar aumentos de tarifas por inflación de materias primas y mantener un monitoreo ininterrumpido de su hato con máxima rentabilidad.")
+    st.info("💡 **Estrategia Nutri-ON & Lecher-IA:** El 85% de los productores eligen el **Plan Anual de 12 Meses** para congelar precios ante la inflación de materias primas y garantizar consistencia nutricional todo el año.")
     st.stop()
 
 
 # =========================================================================
-# PASO 2: PANTALLA DE AUTENTICACIÓN Y DOBLE FACTOR (2FA)
+# PASO 2: SEGURIDAD & AUTENTICACIÓN 2FA (CON NAVEGACIÓN "ATRÁS")
 # =========================================================================
-if not st.session_state.logged_in or not st.session_state.two_fa_verified:
-    st.markdown("<h1 style='text-align: center; color: #054A29;'>🔐 Lecher-IA Pro — Autenticación Segura</h1>", unsafe_allow_html=True)
-    st.markdown(f"<p style='text-align: center; color: #137547; font-weight: 600;'>Plan Seleccionado: {st.session_state.plan_seleccionado}</p>", unsafe_allow_html=True)
-    st.markdown("<br>", unsafe_allow_html=True)
+if st.session_state.paso_actual == 2 or (not st.session_state.two_fa_verified):
+    st.progress(0.60)
+    st.markdown(f"""
+        <div class='nav-box'>
+            <h4 style='margin:0; color: #054A29;'>🔐 Paso 2 de 3: Seguridad & Autenticación de Usuario</h4>
+            <p style='margin:0; color: #555;'>Plan Activo: <b>{st.session_state.plan_seleccionado}</b>. Ingresa tus credenciales y verifica el código de 2FA.</p>
+        </div>
+    """, unsafe_allow_html=True)
     
+    col_nav1, col_nav2 = st.columns([1, 5])
+    with col_nav1:
+        if st.button("⬅️ Atrás (Cambiar Plan)"):
+            st.session_state.paso_actual = 1
+            st.session_state.subscribed = False
+            st.rerun()
+
     col_l1, col_l2, col_l3 = st.columns([1, 1.5, 1])
     with col_l2:
-        with st.container():
-            st.markdown("### 🔑 Credenciales & Doble Factor (2FA)")
-            
-            if not st.session_state.logged_in:
-                with st.form("form_login"):
-                    usuario = st.text_input("Usuario / Correo Electrónico", value="admin")
-                    password = st.text_input("Contraseña", type="password", value="lecheria2026")
-                    btn_login = st.form_submit_button("Siguiente: Verificar 2FA ➔")
-                    
-                    if btn_login:
-                        if usuario == "admin" and password == "lecheria2026":
-                            st.session_state.logged_in = True
-                            st.success("✅ Credenciales correctas. Se ha enviado un código OTP de 6 dígitos a tu autenticador.")
-                            st.rerun()
-                        else:
-                            st.error("❌ Usuario o contraseña incorrectos. (Prueba con usuario: admin, password: lecheria2026)")
-            else:
-                st.success("🟢 Usuario autenticado correctamente.")
-                st.info("📱 Ingresa el código de Doble Factor de Autenticación (2FA) recibido en tu dispositivo (Código de prueba: **2026**).")
+        st.markdown("### 🔑 Credenciales & Doble Factor (2FA)")
+        if not st.session_state.logged_in:
+            with st.form("form_login"):
+                usuario = st.text_input("Usuario / Correo Electrónico", value="admin")
+                password = st.text_input("Contraseña", type="password", value="lecheria2026")
+                btn_login = st.form_submit_button("Siguiente: Verificar 2FA ➔")
                 
-                with st.form("form_2fa"):
-                    codigo_2fa = st.text_input("Código 2FA (6 dígitos)", max_chars=6, value="2026")
-                    btn_2fa = st.form_submit_button("🔒 Validar 2FA e Ingresar a la App")
-                    
-                    if btn_2fa:
-                        if codigo_2fa == "2026":
-                            st.session_state.two_fa_verified = True
-                            st.success("✅ ¡Autenticación completada con éxito!")
-                            st.rerun()
-                        else:
-                            st.error("❌ Código 2FA inválido. Utiliza el código de prueba: 2026")
+                if btn_login:
+                    if usuario == "admin" and password == "lecheria2026":
+                        st.session_state.logged_in = True
+                        st.success("✅ Credenciales correctas.")
+                        st.rerun()
+                    else:
+                        st.error("❌ Usuario o contraseña incorrectos. (Prueba con: admin / lecheria2026)")
+        else:
+            st.success("🟢 Usuario autenticado correctamente.")
+            st.info("📱 Ingresa el código 2FA recibido en tu dispositivo (Código de prueba: **2026**).")
+            
+            with st.form("form_2fa"):
+                codigo_2fa = st.text_input("Código 2FA (6 dígitos)", max_chars=6, value="2026")
+                btn_2fa = st.form_submit_button("🔒 Confirmar e Ingresar a la App ➔")
+                
+                if btn_2fa:
+                    if codigo_2fa == "2026":
+                        st.session_state.two_fa_verified = True
+                        st.session_state.paso_actual = 3
+                        st.success("✅ ¡Autenticación completada!")
+                        st.rerun()
+                    else:
+                        st.error("❌ Código 2FA inválido. Prueba con: 2026")
     st.stop()
 
 
 # =========================================================================
-# PASO 3: APLICACIÓN PRINCIPAL (ACCESO TOTAL LUEGO DE SUSCRIPCIÓN + LOGIN)
+# PASO 3: APLICACIÓN PRINCIPAL (SUITE TOTAL CON ASISTENTE Y BOTONES DE NAVEGACIÓN)
 # =========================================================================
+st.progress(1.0)
+st.markdown(f"""
+    <div class='nav-box'>
+        <h4 style='margin:0; color: #054A29;'>🚀 Paso 3 de 3: Plataforma Lecher-IA Pro Activa</h4>
+        <p style='margin:0; color: #555;'>Sesión Segura &bull; Plan: <b>{st.session_state.plan_seleccionado}</b> &bull; Utiliza el menú o navega con las guías internas.</p>
+    </div>
+""", unsafe_allow_html=True)
+
+# Botón para cerrar sesión o cambiar de plan sin salir de la app
+col_top1, col_top2 = st.columns([4, 1])
+with col_top2:
+    if st.button("🔄 Cambiar Plan / Cerrar Sesión"):
+        st.session_state.paso_actual = 1
+        st.session_state.subscribed = False
+        st.session_state.logged_in = False
+        st.session_state.two_fa_verified = False
+        st.rerun()
 
 # --- REPORTE OPERATIVO PDF NASEM 2021 ---
 def generar_pdf_tmr_financiero(df_resultados, costo_alimento, cms_req, ecm, raza, estado_prod, tam_corral, precio_leche, iofc, ebitda_diario, costo_total_litro, break_even_leche, ch4_vaca, n_exc_vaca, iot_status, mun_est, de_novo_fat):
@@ -300,7 +331,7 @@ with col_logo:
 with col_titulo:
     st.title("Lecher-IA Pro — Plataforma Integral Bionutricional & PLF")
     st.markdown("<h4 style='color: #2A9D8F; margin-top: -15px; font-weight: 600;'>Gemelo Digital, Bluetooth TMR, Control de 3,000 Cabezas y Telemedicina.</h4>", unsafe_allow_html=True)
-    st.markdown(f"<small style='color: #666;'>Plan Activo: <b>{st.session_state.plan_seleccionado}</b> &bull; Creada por el <b>Dr. Alejandro Castañeda Correa</b>.</small>", unsafe_allow_html=True)
+    st.markdown(f"<small style='color: #666;'>Diseñada y creada por el <b>Dr. Alejandro Castañeda Correa</b>.</small>", unsafe_allow_html=True)
 
 st.markdown("---")
 
@@ -392,7 +423,7 @@ iot_rumination_min = 465
 
 with tab_inv:
     st.subheader("📝 Formulario de Registro Individual de Animales")
-    st.caption("Ingresa los datos del bovino y presiona el botón para guardarlo en la base de datos (capacidad hasta 3,000 animales).")
+    st.caption("💡 **Instrucción:** Llena los datos del bovino y haz clic en 'Guardar Animal' para agregarlo a la base de datos.")
     
     with st.form("form_nuevo_animal", clear_on_submit=True):
         c1, c2, c3 = st.columns(3)
@@ -583,10 +614,19 @@ with tab_mixer_bt:
                 else:
                     st.progress(1.0)
                     st.success(f"🛑 **¡INGREDIENTE COMPLETO! DETENER CARGA DE {ing_actual['nombre'].upper()}.** Target: `{peso_cargado:.1f} kg` / `{peso_meta_corral:.1f} kg`.")
-                    if st.button("➡️ Siguiente Ingrediente en la Ración"):
-                        st.session_state.idx_ingrediente_actual += 1
-                        st.session_state.peso_cargado_actual = 0.0
-                        st.rerun()
+                    
+                    col_mbt1, col_mbt2 = st.columns(2)
+                    with col_mbt1:
+                        if idx_actual > 0:
+                            if st.button("⬅️ Ingrediente Anterior"):
+                                st.session_state.idx_ingrediente_actual -= 1
+                                st.session_state.peso_cargado_actual = 0.0
+                                st.rerun()
+                    with col_mbt2:
+                        if st.button("➡️ Siguiente Ingrediente en Ración ➔"):
+                            st.session_state.idx_ingrediente_actual += 1
+                            st.session_state.peso_cargado_actual = 0.0
+                            st.rerun()
             else:
                 st.balloons()
                 st.success("🎉 **¡TODOS LOS INGREDIENTES CARGADOS EN EL CARRO MEZCLADOR!**")
@@ -713,7 +753,7 @@ st.markdown("---")
 st.markdown(
     """
     <div style='text-align: center; color: gray; font-size: 12px;'>
-        <strong>Lecher-IA Pro</strong> &bull; Enterprise Suite, Digital Twin & Telemedicine<br>
+        <strong>Lecher-IA Pro</strong> &bull; Enterprise PLF Suite, Digital Twin & Telemedicine<br>
         Designed and engineered by <strong>Dr. Alejandro Castañeda Correa</strong>.
     </div>
     """, 
