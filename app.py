@@ -29,12 +29,12 @@ def generar_pdf_tmr_financiero(df_resultados, costo_alimento, cms_req, ecm, raza
     subtitle_style = ParagraphStyle('SubTitleStyle', parent=styles['Normal'], fontSize=9, textColor=colors.HexColor('#555555'), spaceAfter=10)
     
     story.append(Paragraph("<b>LECHER-IA Pro — REPORTE FINANCIERO, TMR & VISIÓN AI</b>", title_style))
-    story.append(Paragraph(f"<b>Formulador:</b> Dr. Alejandro Castañeda Correa &nbsp;|&nbsp; <b>Perfil:</b> {raza} ({estado_prod}) &nbsp;|&nbsp; <b>Corral:</b> {tam_corral} vacas &nbsp;|&nbsp; <b>IoT/AI Link:</b> {iot_status}", subtitle_style))
+    story.append(Paragraph(f"<b>Formulador:</b> Dr. Alejandro Castañeda Correa &bull; <b>Perfil:</b> {raza} ({estado_prod}) &bull; <b>Corral:</b> {tam_corral} vacas &bull; <b>IoT/AI Link:</b> {iot_status}", subtitle_style))
     story.append(Spacer(1, 4))
     
-    story.append(Paragraph(f"<b>Costo Alimento/Vaca:</b> ${costo_alimento:.2f} MXN &nbsp;\vert{}&nbsp; <b>Costo Total/L:</b>${costo_total_litro:.2f} MXN &nbsp;|&nbsp; <b>Punto Equilibrio:</b> {break_even_leche:.1f} L/vaca", styles['Normal']))
+    story.append(Paragraph(f"<b>Costo Alimento/Vaca:</b> ${costo_alimento:.2f} MXN &bull; <b>Costo Total/L:</b>${costo_total_litro:.2f} MXN &bull; <b>Punto Equilibrio:</b> {break_even_leche:.1f} L/vaca", styles['Normal']))
     story.append(Spacer(1, 2))
-    story.append(Paragraph(f"<b>IOFC/Vaca:</b> ${iofc:.2f} MXN/día &nbsp;|&nbsp; <b>EBITDA Corral/Mes:</b> ${ebitda_diario * tam_corral * 30.5:,.2f} MXN &nbsp;|&nbsp; <b>Huella CH₄:</b> {ch4_vaca:.1f} g/día", styles['Normal']))
+    story.append(Paragraph(f"<b>IOFC/Vaca:</b> ${iofc:.2f} MXN/día &bull; <b>EBITDA Corral/Mes:</b> ${ebitda_diario * tam_corral * 30.5:,.2f} MXN &bull; <b>Huella CH₄:</b> {ch4_vaca:.1f} g/día", styles['Normal']))
     story.append(Spacer(1, 10))
     
     table_data = [["Ingrediente", "MS %", "Base Seca (kg/vaca)", "Base Fresca (kg/vaca)", f"Carga Corral ({tam_corral} vacas)"]]
@@ -101,7 +101,7 @@ st.markdown("---")
 st.sidebar.markdown("## 📷 0. Visión AI & Ponderación por Foto")
 usar_vision_ai = st.sidebar.checkbox("Activar Estimación de Peso por Fotografía", value=True)
 
-peso_fotografia_calculado = 650.0  # Valor por defecto
+peso_fotografia_calculado = 650.0
 
 if usar_vision_ai:
     st.sidebar.caption("Sube una foto lateral del bovino para calcular su peso corporal mediante análisis zoométrico automatizado.")
@@ -111,11 +111,9 @@ if usar_vision_ai:
         image = Image.open(foto_bovino)
         st.sidebar.image(image, caption="Bovino Analizado por IA", use_container_width=True)
         
-        # Procesamiento de Visión Computacional con OpenCV
         img_np = np.array(image)
         gray = cv2.cvtColor(img_np, cv2.COLOR_RGB2GRAY)
         
-        # Extracción de contornos y dimensiones relativas de la silueta
         blur = cv2.GaussianBlur(gray, (5, 5), 0)
         _, thresh = cv2.threshold(blur, 120, 255, cv2.THRESH_BINARY_INV)
         contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -124,7 +122,6 @@ if usar_vision_ai:
             c = max(contours, key=cv2.contourArea)
             x, y, w, h = cv2.boundingRect(c)
             
-            # Estimación biométrica basada en proporciones de píxeles (Bounding Box Ratio)
             factor_escala = h / max(1, w)
             peso_fotografia_calculado = round(float(w * h * 0.0018 * (1.15 if factor_escala < 0.6 else 0.95)), 1)
             peso_fotografia_calculado = max(350.0, min(peso_fotografia_calculado, 900.0))
@@ -138,7 +135,6 @@ if usar_vision_ai:
 else:
     peso_fotografia_calculado = st.sidebar.slider("Peso Vivo (kg)", 350.0, 850.0, 650.0, 10.0)
 
-# IoT / Telemetría complementaria
 iot_ph_rumen = st.sidebar.slider("pH Ruminal Promedio (Bolos IoT)", 5.6, 6.8, 6.2, 0.05)
 iot_mixer_error_pct = st.sidebar.slider("Error de Carga Carro Mezclador (%)", 0.0, 10.0, 1.5, 0.5)
 iot_status_str = "Activo (Visión AI + MQTT IoT)"
@@ -162,7 +158,7 @@ elif "Media" in estado_productivo:
 else:
     dim = st.sidebar.slider("Días en Leche (DIM)", 201, 305, 250, 5)
 
-peso_vivo = peso_fotografia_calculado  # Vinculación directa con el peso obtenido por fotografía/IA
+peso_vivo = peso_fotografia_calculado
 bcs = st.sidebar.slider("Condición Corporal (BCS 1-5)", 2.25, 4.0, 3.0, 0.25)
 
 st.sidebar.markdown("---")
