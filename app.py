@@ -15,18 +15,86 @@ from reportlab.lib import colors
 
 # --- 1. CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(
-    page_title="Lecher-IA Pro | Plataforma IoT, Visión AI & Telemedicina Bovina",
+    page_title="Lecher-IA Pro | Plataforma IoT, Visión AI & Hato Inteligente",
     page_icon="🥛",
     layout="wide"
 )
 
-# Inicializar estados de sesión para citas y telemedicina
+# Inicializar estados de sesión para inventario, citas y notificaciones
 if "cita_pagada" not in st.session_state:
     st.session_state.cita_pagada = False
 if "detalles_cita" not in st.session_state:
     st.session_state.detalles_cita = {}
 if "ver_videollamada" not in st.session_state:
     st.session_state.ver_videollamada = False
+
+# Inicializar base de datos de inventario del hato si no existe
+if "df_hato" not in st.session_state:
+    st.session_state.df_hato = pd.DataFrame([
+        {
+            "SINIGA": "MX-14-032-8811",
+            "Arete Interno": "101",
+            "Etapa Productiva": "En producción",
+            "DIM / Edad (días)": 240,
+            "Días Gestación": 150,
+            "Prod. Leche (L)": 32.5,
+            "Estado Salud": "Óptimo"
+        },
+        {
+            "SINIGA": "MX-14-032-9012",
+            "Arete Interno": "102",
+            "Etapa Productiva": "En transición",
+            "DIM / Edad (días)": 12,
+            "Días Gestación": 0,
+            "Prod. Leche (L)": 38.0,
+            "Estado Salud": "Monitoreo CETOSIS"
+        },
+        {
+            "SINIGA": "MX-14-033-1045",
+            "Arete Interno": "103",
+            "Etapa Productiva": "Vaca seca",
+            "DIM / Edad (días)": 285,
+            "Días Gestación": 230,
+            "Prod. Leche (L)": 0.0,
+            "Estado Salud": "Preparación Parto"
+        },
+        {
+            "SINIGA": "MX-14-034-5521",
+            "Arete Interno": "201",
+            "Etapa Productiva": "Para inseminar",
+            "DIM / Edad (días)": 75,
+            "Días Gestación": 0,
+            "Prod. Leche (L)": 42.0,
+            "Estado Salud": "Espera Voluntaria OK"
+        },
+        {
+            "SINIGA": "MX-14-035-7788",
+            "Arete Interno": "301",
+            "Etapa Productiva": "Becerra de reemplazo gestante",
+            "DIM / Edad (días)": 450,
+            "Días Gestación": 110,
+            "Prod. Leche (L)": 0.0,
+            "Estado Salud": "Crecimiento Normal"
+        },
+        {
+            "SINIGA": "MX-14-035-8899",
+            "Arete Interno": "302",
+            "Etapa Productiva": "Becerra de reemplazo no gestante",
+            "DIM / Edad (días)": 380,
+            "Días Gestación": 0,
+            "Prod. Leche (L)": 0.0,
+            "Estado Salud": "Desarrollo"
+        },
+        {
+            "SINIGA": "MX-14-036-1234",
+            "Arete Interno": "401",
+            "Etapa Productiva": "Becerra recién nacida",
+            "DIM / Edad (días)": 5,
+            "Días Gestación": 0,
+            "Prod. Leche (L)": 0.0,
+            "Estado Salud": "Calostro OK"
+        }
+    ])
 
 # --- MÓDULO 5: REPORTE OPERATIVO, FINANCIERO E IOT EN PDF ---
 def generar_pdf_tmr_financiero(df_resultados, costo_alimento, cms_req, ecm, raza, estado_prod, tam_corral, precio_leche, iofc, ebitda_diario, costo_total_litro, break_even_leche, ch4_vaca, n_exc_vaca, iot_status):
@@ -94,15 +162,15 @@ with col_logo:
         ">
             <span style="font-size: 38px; line-height: 1;">🧬🐮</span>
             <div style="font-size: 15px; font-weight: 800; letter-spacing: 1.5px; margin-top: 4px; text-transform: uppercase;">LECHER-IA</div>
-            <div style="font-size: 9px; font-weight: 500; opacity: 0.85; letter-spacing: 0.8px;">PRECISION SUITE & CLINIC</div>
+            <div style="font-size: 9px; font-weight: 500; opacity: 0.85; letter-spacing: 0.8px;">HERD INVENTORY & AI SUITE</div>
         </div>
         """,
         unsafe_allow_html=True
     )
 
 with col_titulo:
-    st.title("Lecher-IA Pro — Nutrición de Precisión y Telemedicina Bovina")
-    st.markdown("<h4 style='color: #2A9D8F; margin-top: -15px; font-weight: 600;'>Plataforma integral de formulación, visión artificial y consultoría veterinaria especializada.</h4>", unsafe_allow_html=True)
+    st.title("Lecher-IA Pro — Nutrición de Precisión, Inventario SINIGA y Telemedicina")
+    st.markdown("<h4 style='color: #2A9D8F; margin-top: -15px; font-weight: 600;'>Plataforma integral con control de hato, alertas inteligentes y consultoría veterinaria.</h4>", unsafe_allow_html=True)
     st.markdown("<small style='color: #666;'>Diseñada y creada por el <b>Dr. Alejandro Castañeda Correa</b>.</small>", unsafe_allow_html=True)
 
 st.markdown("---")
@@ -179,14 +247,16 @@ starch_max = st.sidebar.slider("Almidón Máximo (% MS - Prev. SARA)", 20.0, 32.
 ee_max = st.sidebar.slider("Grasa Total / EE Máxima (% MS)", 3.5, 7.0, 6.0, 0.5)
 
 # --- CUERPO PRINCIPAL ORGANIZADO EN PESTAÑAS (TABS) ---
-tab_form, tab_fin, tab_vision, tab_telemed = st.tabs([
-    "🌾 Formulación TMR & Matriz", 
+tab_form, tab_inv, tab_alert, tab_fin, tab_vision, tab_telemed = st.tabs([
+    "🌾 Formulación TMR", 
+    "🐄 Inventario Hato (SINIGA)", 
+    "🔔 Alertas & Notificaciones AI",
     "📊 Finanzas & EBITDA", 
-    "📷 Visión AI (Peso por Foto)", 
-    "🩺 Clínica & Telemedicina"
+    "📷 Visión AI (Peso)", 
+    "🩺 Telemedicina"
 ])
 
-# Variables IoT y Financieras globales para las pestañas
+# Variables IoT globales
 iot_ph_rumen = 6.2
 iot_mixer_error_pct = 1.5
 iot_status_str = "Activo (IoT MQTT)"
@@ -249,18 +319,12 @@ with tab_form:
                 st.success("✅ ¡Dieta Bio-Optimizada con éxito!")
                 resultados = []
                 costo_alimento = 0
-                nel_sum, mp_sum, fdn_total_kg, pc_total_g, starch_sum = 0, 0, 0, 0, 0
-                
                 for idx, row in editable_df.iterrows():
                     ing = str(row["Ingrediente"])
                     cantidad = variables[ing].varValue
                     if cantidad and cantidad > 0.001:
                         costo_parcial = cantidad * float(row["Costo"])
                         costo_alimento += costo_parcial
-                        pc_total_g += cantidad * (float(row["PC"]) / 100.0) * 1000.0
-                        fdn_total_kg += cantidad * (float(row["FDN"]) / 100.0)
-                        starch_sum += cantidad * float(row["Almidon"])
-                        
                         ms_pct = float(row["MS %"])
                         base_fresca_vaca = cantidad / (ms_pct / 100.0)
                         resultados.append({
@@ -278,6 +342,93 @@ with tab_form:
                 st.warning("⚠️ No se encontró solución factible con los límites actuales.")
         except Exception as e:
             st.error(f"Error en la optimización: {e}")
+
+with tab_inv:
+    st.subheader("🐄 Inventario del Hato Organizado por SINIGA y Arete Interno")
+    st.caption("Clasificación oficial por etapa productiva. El hato se ordena automáticamente por número SINIGA y arete interno.")
+    
+    # Ordenar estrictamente el DataFrame por SINIGA y Arete Interno
+    df_sorted = st.session_state.df_hato.sort_values(by=["SINIGA", "Arete Interno"]).reset_index(drop=True)
+    
+    # Editor interactivo para agregar o modificar vacas
+    st.markdown("### 📋 Registro y Actualización del Hato")
+    df_editado = st.data_editor(df_sorted, num_rows="dynamic", use_container_width=True)
+    st.session_state.df_hato = df_editado
+    
+    st.markdown("---")
+    st.markdown("### 📊 Resumen por Etapa Productiva")
+    
+    if not df_editado.empty and "Etapa Productiva" in df_editado.columns:
+        conteo_etapas = df_editado["Etapa Productiva"].value_counts().reset_index()
+        conteo_etapas.columns = ["Etapa Productiva", "Cantidad de Animales"]
+        st.dataframe(conteo_etapas, use_container_width=True)
+
+with tab_alert:
+    st.subheader("🔔 Centro de Notificaciones Inteligentes & Alertas al Productor")
+    st.caption("Sistema automatizado de monitoreo para secado, transiciones críticas y salud del hato lechero.")
+    
+    # Motor inteligente de alertas basado en el inventario actual
+    alertas_generadas = []
+    
+    for idx, row in st.session_state.df_hato.iterrows():
+        siniga = row.get("SINIGA", "S/N")
+        arete = row.get("Arete Interno", "S/N")
+        etapa = row.get("Etapa Productiva", "")
+        dim = row.get("DIM / Edad (días)", 0)
+        gestacion = row.get("Días Gestación", 0)
+        salud = row.get("Estado Salud", "")
+        
+        # 1. Alerta de Secado (Vacas en producción con alta gestación o DIM avanzado)
+        if etapa == "En producción" and (dim >= 220 or gestacion >= 210):
+            alertas_generadas.append({
+                "tipo": "🚨 SECADO REQUERIDO",
+                "prioridade": "ALTA",
+                "mensaje": f"Vaca Arete #{arete} (SINIGA: {siniga}) ha alcanzado {dim} DIM / {gestacion} días de gestación. Debe secarse e iniciar traslado al corral de vacas secas."
+            })
+            
+        # 2. Alerta de Transición (Riesgo metabólico / cetosis)
+        elif etapa == "En transición" or "CETOSIS" in str(salud).upper():
+            alertas_generadas.append({
+                "tipo": "⚠️ ALERTA SANITARIA / TRANSICIÓN",
+                "prioridade": "MEDIA",
+                "mensaje": f"Vaca Arete #{arete} (SINIGA: {siniga}) requiere monitoreo estricto de cetosis y consumo de materia seca (POST-PARTO)."
+            })
+            
+        # 3. Alerta de Inseminación
+        elif etapa == "Para inseminar" and dim >= 50:
+            alertas_generadas.append({
+                "tipo": " Reproductive 🧬 CELO / INSEMINACIÓN",
+                "prioridade": "MEDIA",
+                "mensaje": f"Vaca Arete #{arete} (SINIGA: {siniga}) lista en periodo voluntario de espera ({dim} DIM). Programar detección de celo o sincronización."
+            })
+
+    # Mostrar simulación de notificaciones en el teléfono del productor
+    st.markdown("### 📱 Bandeja de Notificaciones Push (Simulador Móvil)")
+    
+    if alertas_generadas:
+        for alerta in alertas_generadas:
+            color_borde = "#D32F2F" if alerta["prioridade"] == "ALTA" else "#F57C00"
+            bg_color = "#FFEBEE" if alerta["prioridade"] == "ALTA" else "#FFF3E0"
+            
+            st.markdown(
+                f"""
+                <div style="
+                    background-color: {bg_color};
+                    border-left: 6px solid {color_borde};
+                    padding: 14px 18px;
+                    border-radius: 8px;
+                    margin-bottom: 12px;
+                    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+                ">
+                    <div style="font-weight: bold; color: {color_borde}; font-size: 14px;">{alerta['tipo']}</div>
+                    <div style="font-size: 13px; color: #333; margin-top: 4px;">{alerta['mensaje']}</div>
+                    <div style="font-size: 10px; color: #777; margin-top: 6px; text-align: right;">Enviado vía SMS / Push Notifier • Hato Lecher-IA Pro</div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+    else:
+        st.success("✅ No hay alertas críticas pendientes en el hato. Todos los animales se encuentran en parámetros normales.")
 
 with tab_fin:
     st.subheader("📊 Estructura Financiera, EBITDA y Proyecciones")
@@ -333,7 +484,7 @@ with tab_vision:
             factor_escala = h / max(1, w)
             peso_fotografia_calculado = round(float(w * h * 0.0018 * (1.15 if factor_escala < 0.6 else 0.95)), 1)
             peso_fotografia_calculado = max(350.0, min(peso_fotografia_calculado, 900.0))
-            st.success(f"🎯 **Peso Estimado por Visión AI:** `{peso_fotografia_calculado} kg` (Sincronizado con el hato)")
+            st.success(f"🎯 **Peso Estimado por Visión AI:** `{peso_fotografia_calculado} kg`")
         else:
             st.warning("⚠️ No se detectó contorno claro.")
     else:
@@ -350,7 +501,7 @@ with tab_telemed:
             nombre_productor = st.text_input("Productor / Establo", value="Ganadería Zacatecas")
             fecha_cita = st.date_input("Fecha de Consulta", min_value=datetime.today().date())
             hora_cita = st.time_input("Hora Preferida", value=datetime.strptime("10:00", "%H:%M").time())
-            motivo_consulta = st.text_area("Motivo de Consulta", "Revisión de ración TMR y eficiencia.")
+            motivo_consulta = st.text_area("Motivo de Consulta", "Revisión de ración TMR y alertas de hato.")
             
             st.markdown("💳 **Costo:** **$475.00 MXN** (30 min)")
             metodo_pago = st.selectbox("Método de Pago", ["Tarjeta (Stripe)", "Transferencia SPEI", "PayPal"])
@@ -371,7 +522,7 @@ with tab_telemed:
             if st.button("🎥 Abrir Sala de Videollamada (30 min)"):
                 st.session_state.ver_videollamada = not st.session_state.ver_videollamada
         else:
-            st.info("💡 Agenda y paga tu consulta en el panel izquierdo para habilitar el acceso a la sala de video.")
+            st.info("💡 Agenda y paga tu consulta para habilitar el acceso a la sala de video.")
 
     if st.session_state.ver_videollamada and st.session_state.cita_pagada:
         st.markdown("---")
@@ -392,7 +543,7 @@ st.markdown("---")
 st.markdown(
     """
     <div style='text-align: center; color: gray; font-size: 12px;'>
-        <strong>Lecher-IA Pro</strong> &bull; Sistema de Visión AI, Telemedicina, Nutrición y Finanzas Bovina<br>
+        <strong>Lecher-IA Pro</strong> &bull; Sistema de Visión AI, Inventario SINIGA, Alertas & Telemedicina<br>
         Designed and engineered by <strong>Dr. Alejandro Castañeda Correa</strong>.
     </div>
     """, 
