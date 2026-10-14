@@ -15,7 +15,7 @@ from reportlab.lib import colors
 
 # --- 1. CONFIGURACIÓN DE PÁGINA & ESTILOS AVANZADOS ---
 st.set_page_config(
-    page_title="Lecher-IA Pro | Digital Twin, TMR Bluetooth & Large Herd PLF",
+    page_title="Lecher-IA Pro | Secure Enterprise PLF & Subscription Suite",
     page_icon="🧬",
     layout="wide"
 )
@@ -35,6 +35,24 @@ st.markdown("""
         box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         border: 1px solid #dee2e6;
     }
+    .pricing-card {
+        background: linear-gradient(135deg, #ffffff 0%, #f4f6f5 100%);
+        border: 2px solid #137547;
+        border-radius: 16px;
+        padding: 24px;
+        text-align: center;
+        box-shadow: 0 8px 16px rgba(0,0,0,0.08);
+    }
+    .pricing-card-vip {
+        background: linear-gradient(135deg, #054A29 0%, #137547 100%);
+        color: white;
+        border: 3px solid #FFD700;
+        border-radius: 16px;
+        padding: 24px;
+        text-align: center;
+        box-shadow: 0 12px 24px rgba(5,74,41,0.25);
+        transform: scale(1.03);
+    }
     .stTabs [data-baseweb="tab-list"] {
         gap: 8px;
     }
@@ -49,7 +67,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Definición global de las columnas oficiales del inventario
+# Definición global de columnas oficiales del inventario (hasta 3,000 cabezas)
 COLUMNAS_HATO = [
     "SINIGA", 
     "Arete Interno", 
@@ -62,7 +80,16 @@ COLUMNAS_HATO = [
     "Estado Salud"
 ]
 
-# Inicializar estados de sesión
+# --- INICIALIZACIÓN DE ESTADOS DE SESIÓN (AUTENTICACIÓN, 2FA Y SUSCRIPCIÓN) ---
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+if "two_fa_verified" not in st.session_state:
+    st.session_state.two_fa_verified = False
+if "subscribed" not in st.session_state:
+    st.session_state.subscribed = False
+if "plan_seleccionado" not in st.session_state:
+    st.session_state.plan_seleccionado = None
+
 if "cita_pagada" not in st.session_state:
     st.session_state.cita_pagada = False
 if "detalles_cita" not in st.session_state:
@@ -70,7 +97,6 @@ if "detalles_cita" not in st.session_state:
 if "ver_videollamada" not in st.session_state:
     st.session_state.ver_videollamada = False
 
-# Estados de sesión para el asistente Bluetooth del Carro Mezclador
 if "bt_conectado" not in st.session_state:
     st.session_state.bt_conectado = False
 if "idx_ingrediente_actual" not in st.session_state:
@@ -78,9 +104,126 @@ if "idx_ingrediente_actual" not in st.session_state:
 if "peso_cargado_actual" not in st.session_state:
     st.session_state.peso_cargado_actual = 0.0
 
-# --- BASE DE DATOS INICIAL COMPLETAMENTE VACÍA ---
 if "df_hato" not in st.session_state:
     st.session_state.df_hato = pd.DataFrame(columns=COLUMNAS_HATO)
+
+
+# ==========================================
+# FLUJO 1: PANTALLA DE LOGIN & 2FA (SEGURIDAD)
+# ==========================================
+if not st.session_state.logged_in or not st.session_state.two_fa_verified:
+    st.markdown("<h1 style='text-align: center; color: #054A29;'>🧬 LECHER-IA Pro — Acceso Seguro</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #666;'>Plataforma Enterprise de Precisión Bionutricional & Inteligencia Ganadera</p>", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    col_l1, col_l2, col_l3 = st.columns([1, 1.5, 1])
+    with col_l2:
+        with st.container():
+            st.markdown("### 🔐 Autenticación de Usuario & 2FA")
+            
+            if not st.session_state.logged_in:
+                with st.form("form_login"):
+                    usuario = st.text_input("Usuario / Correo Electrónico", value="admin")
+                    password = st.text_input("Contraseña", type="password", value="lecheria2026")
+                    btn_login = st.form_submit_button("Siguiente: Verificar 2FA ➔")
+                    
+                    if btn_login:
+                        if usuario == "admin" and password == "lecheria2026":
+                            st.session_state.logged_in = True
+                            st.success("✅ Credenciales correctas. Se ha enviado un código OTP de 6 dígitos a tu autenticador.")
+                            st.rerun()
+                        else:
+                            st.error("❌ Usuario o contraseña incorrectos. (Prueba con usuario: admin, password: lecheria2026)")
+            else:
+                st.success("🟢 Usuario autenticado correctamente.")
+                st.info("📱 Ingresa el código de Doble Factor de Autenticación (2FA) recibido en tu dispositivo (Código de prueba simulado: **2026**).")
+                
+                with st.form("form_2fa"):
+                    codigo_2fa = st.text_input("Código 2FA (6 dígitos)", max_chars=6, value="2026")
+                    btn_2fa = st.form_submit_button("🔒 Validar 2FA e Ingresar")
+                    
+                    if btn_2fa:
+                        if codigo_2fa == "2026":
+                            st.session_state.two_fa_verified = True
+                            st.success("✅ ¡Autenticación de Doble Factor (2FA) completada con éxito!")
+                            st.rerun()
+                        else:
+                            st.error("❌ Código 2FA inválido. Utiliza el código de prueba: 2026")
+    st.stop()
+
+
+# ==========================================
+# FLUJO 2: PASARELA DE SUSCRIPCIÓN (PLANS 3, 6, 12 MESES + MARKETING NUTRI-ON)
+# ==========================================
+if not st.session_state.subscribed:
+    st.markdown("<h1 style='text-align: center; color: #054A29;'>💎 Elige tu Plan de Suscripción Lecher-IA Pro</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #555; font-size: 16px;'>Potencia tu establo con modelos NASEM 2021, Gemelo Digital y Sincronización Bluetooth para Carros Mezcladores.</p>", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    col_p1, col_p2, col_p3 = st.columns(3)
+    
+    with col_p1:
+        st.markdown("""
+            <div class='pricing-card'>
+                <h3 style='color: #054A29;'>Plan Trimestral</h3>
+                <h2 style='color: #333;'>3 Meses</h2>
+                <p style='color: #666;'>Ideal para prueba y evaluación de hatos medianos.</p>
+                <hr>
+                <h1 style='color: #137547;'>$1,495 <small style='font-size: 14px;'>MXN/mes</small></h1>
+                <p style='color: #888; font-size: 13px;'>Facturado cada 3 meses ($4,485 MXN total)</p>
+        """, unsafe_allow_html=True)
+        if st.button("Seleccionar Plan 3 Meses", use_container_width=True):
+            st.session_state.subscribed = True
+            st.session_state.plan_seleccionado = "3 Meses"
+            st.success("¡Suscripción Trimestral Activada!")
+            st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    with col_p2:
+        st.markdown("""
+            <div class='pricing-card'>
+                <h3 style='color: #054A29;'>Plan Semestral</h3>
+                <h2 style='color: #333;'>6 Meses</h2>
+                <p style='color: #666;'>Optimización continua y control estacional.</p>
+                <hr>
+                <h1 style='color: #137547;'>$1,195 <small style='font-size: 14px;'>MXN/mes</small></h1>
+                <p style='color: #888; font-size: 13px;'>Ahorras 20% ($7,170 MXN total)</p>
+        """, unsafe_allow_html=True)
+        if st.button("Seleccionar Plan 6 Meses", use_container_width=True):
+            st.session_state.subscribed = True
+            st.session_state.plan_seleccionado = "6 Meses"
+            st.success("¡Suscripción Semestral Activada!")
+            st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    with col_p3:
+        st.markdown("""
+            <div class='pricing-card-vip'>
+                <div style='background-color: #FFD700; color: #054A29; font-weight: 800; font-size: 12px; padding: 4px 12px; border-radius: 20px; display: inline-block; margin-bottom: 8px;'>🔥 MÁS POPULAR & AHORRO MÁXIMO</div>
+                <h3 style='color: #FFFFFF;'>Plan Anual VIP</h3>
+                <h2 style='color: #FFD700;'>12 Meses</h2>
+                <p style='color: #E0E0E0;'>Acceso total ilimitado para 3,000 cabezas + Soporte 24/7 con el Dr. Alejandro Castañeda.</p>
+                <hr style='border-color: rgba(255,255,255,0.2);'>
+                <h1 style='color: #FFFFFF;'>$795 <small style='font-size: 14px; color: #FFD700;'>MXN/mes</small></h1>
+                <p style='color: #FFD700; font-size: 14px; font-weight: 700;'>¡Ahorras 47% ($9,540 MXN anuales)! Pagas $9,540 MXN único.</p>
+                <p style='color: #E0E0E0; font-size: 12px; margin-top: 5px;'>Garantía de retención de precio por 3 años + Actualizaciones automáticas de Gemelo Digital.</p>
+        """, unsafe_allow_html=True)
+        if st.button("🌟 SUSCRIBIRME 12 MESES (AHORRO VIP)", use_container_width=True):
+            st.session_state.subscribed = True
+            st.session_state.plan_seleccionado = "12 Meses VIP"
+            st.balloons()
+            st.success("¡Suscripción Anual VIP Activada con Éxito!")
+            st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.info("💡 **Estrategia Nutri-ON & Lecher-IA:** El 85% de los productores lecheros de alto rendimiento eligen el **Plan Anual de 12 Meses** para asegurar consistencia estacional en sus fórmulas NASEM, evitar aumentos de tarifas por inflación de materias primas y mantener un monitoreo ininterrumpido de su hato con máxima rentabilidad.")
+    st.stop()
+
+
+# ==========================================
+# APLICACIÓN PRINCIPAL (ACCESO CONCEDIDO)
+# ==========================================
 
 # --- REPORTE OPERATIVO PDF NASEM 2021 ---
 def generar_pdf_tmr_financiero(df_resultados, costo_alimento, cms_req, ecm, raza, estado_prod, tam_corral, precio_leche, iofc, ebitda_diario, costo_total_litro, break_even_leche, ch4_vaca, n_exc_vaca, iot_status, mun_est, de_novo_fat):
@@ -131,7 +274,7 @@ def generar_pdf_tmr_financiero(df_resultados, costo_alimento, cms_req, ecm, raza
     buffer.seek(0)
     return buffer
 
-# --- 2. ENCABEZADO Y BRANDING ---
+# --- ENCABEZADO Y BRANDING ---
 col_logo, col_titulo = st.columns([1.2, 4.8])
 
 with col_logo:
@@ -148,16 +291,16 @@ with col_logo:
         ">
             <span style="font-size: 38px; line-height: 1;">🧬🐮</span>
             <div style="font-size: 15px; font-weight: 800; letter-spacing: 1.5px; margin-top: 4px; text-transform: uppercase;">LECHER-IA</div>
-            <div style="font-size: 9px; font-weight: 500; opacity: 0.85; letter-spacing: 0.8px;">HERD REGISTRY (3,000 HEADS)</div>
+            <div style="font-size: 9px; font-weight: 500; opacity: 0.85; letter-spacing: 0.8px;">ENTERPRISE PLF SUITE</div>
         </div>
         """,
         unsafe_allow_html=True
     )
 
 with col_titulo:
-    st.title("Lecher-IA Pro — Módulo de Registro e Inventario de Ganado")
-    st.markdown("<h4 style='color: #2A9D8F; margin-top: -15px; font-weight: 600;'>Plataforma global de precisión bionutricional, control de hato y telemedicina.</h4>", unsafe_allow_html=True)
-    st.markdown("<small style='color: #666;'>Diseñada y creada por el <b>Dr. Alejandro Castañeda Correa</b>.</small>", unsafe_allow_html=True)
+    st.title("Lecher-IA Pro — Plataforma Integral Bionutricional & PLF")
+    st.markdown("<h4 style='color: #2A9D8F; margin-top: -15px; font-weight: 600;'>Gemelo Digital, Bluetooth TMR, Control de 3,000 Cabezas y Telemedicina.</h4>", unsafe_allow_html=True)
+    st.markdown(f"<small style='color: #666;'>Plan Activo: <b>{st.session_state.plan_seleccionado}</b> &bull; Creada por el <b>Dr. Alejandro Castañeda Correa</b>.</small>", unsafe_allow_html=True)
 
 st.markdown("---")
 
@@ -251,7 +394,6 @@ with tab_inv:
     st.subheader("📝 Formulario de Registro Individual de Animales")
     st.caption("Ingresa los datos del bovino y presiona el botón para guardarlo en la base de datos (capacidad hasta 3,000 animales).")
     
-    # Formulario interactivo para registrar un nuevo animal
     with st.form("form_nuevo_animal", clear_on_submit=True):
         c1, c2, c3 = st.columns(3)
         with c1:
@@ -571,7 +713,7 @@ st.markdown("---")
 st.markdown(
     """
     <div style='text-align: center; color: gray; font-size: 12px;'>
-        <strong>Lecher-IA Pro</strong> &bull; Large Herd Management (3,000 Heads), Digital Twin & Telemedicine<br>
+        <strong>Lecher-IA Pro</strong> &bull; Secure Enterprise Suite, Digital Twin & Telemedicine<br>
         Designed and engineered by <strong>Dr. Alejandro Castañeda Correa</strong>.
     </div>
     """, 
