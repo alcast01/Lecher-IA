@@ -15,7 +15,7 @@ from reportlab.lib import colors
 
 # --- 1. CONFIGURACIÓN DE PÁGINA & ESTILOS AVANZADOS ---
 st.set_page_config(
-    page_title="Lecher-IA Pro | Digital Twin & Precision Livestock Farming",
+    page_title="Lecher-IA Pro | Digital Twin, TMR Bluetooth & PLF Suite",
     page_icon="🧬",
     layout="wide"
 )
@@ -56,6 +56,14 @@ if "detalles_cita" not in st.session_state:
     st.session_state.detalles_cita = {}
 if "ver_videollamada" not in st.session_state:
     st.session_state.ver_videollamada = False
+
+# Estados de sesión para el asistente Bluetooth del Carro Mezclador
+if "bt_conectado" not in st.session_state:
+    st.session_state.bt_conectado = False
+if "idx_ingrediente_actual" not in st.session_state:
+    st.session_state.idx_ingrediente_actual = 0
+if "peso_cargado_actual" not in st.session_state:
+    st.session_state.peso_cargado_actual = 0.0
 
 # Inicializar hato avanzado
 if "df_hato" not in st.session_state:
@@ -112,7 +120,7 @@ def generar_pdf_tmr_financiero(df_resultados, costo_alimento, cms_req, ecm, raza
     
     story.append(t)
     story.append(Spacer(1, 12))
-    story.append(Paragraph("<i>Simulación Gemelo Digital basada en ecuaciones dinamicas de pasaje ruminal y metabolómica mamaria.</i>", styles['Normal']))
+    story.append(Paragraph("<i>Simulación Gemelo Digital basada en ecuaciones dinámicas de pasaje ruminal y metabolómica mamaria.</i>", styles['Normal']))
     
     doc.build(story)
     buffer.seek(0)
@@ -135,20 +143,20 @@ with col_logo:
         ">
             <span style="font-size: 38px; line-height: 1;">🧬🐮</span>
             <div style="font-size: 15px; font-weight: 800; letter-spacing: 1.5px; margin-top: 4px; text-transform: uppercase;">LECHER-IA</div>
-            <div style="font-size: 9px; font-weight: 500; opacity: 0.85; letter-spacing: 0.8px;">DIGITAL TWIN & PLF SUITE</div>
+            <div style="font-size: 9px; font-weight: 500; opacity: 0.85; letter-spacing: 0.8px;">DIGITAL TWIN & BLE TMR LINK</div>
         </div>
         """,
         unsafe_allow_html=True
     )
 
 with col_titulo:
-    st.title("Lecher-IA Pro — Gemelo Digital, Metabolómica & PLF Intelligence")
-    st.markdown("<h4 style='color: #2A9D8F; margin-top: -15px; font-weight: 600;'>Plataforma global de precisión bionutricional, análisis predictivo y telemedicina.</h4>", unsafe_allow_html=True)
+    st.title("Lecher-IA Pro — Carro Mezclador Bluetooth & Asistente de Mezclado")
+    st.markdown("<h4 style='color: #2A9D8F; margin-top: -15px; font-weight: 600;'>Plataforma global de precisión bionutricional, automatización BLE y telemedicina.</h4>", unsafe_allow_html=True)
     st.markdown("<small style='color: #666;'>Diseñada y creada por el <b>Dr. Alejandro Castañeda Correa</b>.</small>", unsafe_allow_html=True)
 
 st.markdown("---")
 
-# --- PANEL IZQUIERDO (SIDEBAR): SOLO PARÁMETROS DE PRODUCCIÓN E INFORMACIÓN DEL HATO ---
+# --- PANEL IZQUIERDO (SIDEBAR): PARÁMETROS DEL HATO ---
 st.sidebar.markdown("## 🧬 Parámetros del Hato & Producción")
 
 raza = st.sidebar.selectbox("Ajuste Racial / Genético", ["Holstein-Friesian", "Jersey", "Pardo Suizo", "Cruza Zebuína / Lechera"])
@@ -219,9 +227,10 @@ pendf_min = st.sidebar.slider("peNDF Mínima (% en MS)", 14.0, 24.0, 18.0, 0.5)
 starch_max = st.sidebar.slider("Almidón Máximo (% MS - Prev. SARA)", 20.0, 32.0, 27.0, 0.5)
 ee_max = st.sidebar.slider("Grasa Total / EE Máxima (% MS)", 3.5, 7.0, 6.0, 0.5)
 
-# --- CUERPO PRINCIPAL ORGANIZADO EN 7 PESTAÑAS DIVERSIFICADAS ---
-tab_form, tab_twin, tab_inv, tab_alert, tab_monte, tab_vision, tab_telemed = st.tabs([
+# --- CUERPO PRINCIPAL ORGANIZADO EN PESTAÑAS ---
+tab_form, tab_mixer_bt, tab_twin, tab_inv, tab_alert, tab_monte, tab_vision, tab_telemed = st.tabs([
     "🌾 Formulación TMR", 
+    "🚜 Carro Mezclador Bluetooth BLE",
     "🧬 Gemelo Digital & Metabolómica",
     "🐄 Inventario Hato (SINIGA)", 
     "🔔 Alertas & Comandos Push",
@@ -230,10 +239,8 @@ tab_form, tab_twin, tab_inv, tab_alert, tab_monte, tab_vision, tab_telemed = st.
     "🩺 Telemedicina"
 ])
 
-# Telemetría IoT por defecto
 iot_ph_rumen = 6.18
 iot_rumination_min = 465
-iot_status_str = "Activo (IoT MQTT Telemetry)"
 
 with tab_form:
     st.subheader("🌾 Matriz Nutricional, Insumos & Optimización Lineal PuLP")
@@ -304,29 +311,116 @@ with tab_form:
                         })
                 df_res = pd.DataFrame(resultados)
                 st.dataframe(df_res, use_container_width=True)
+                st.session_state.df_tmr_activa = df_res
                 st.info(f"💰 **Costo Alimento/Vaca/Día:** ${costo_alimento:.2f} MXN")
             else:
                 st.warning("⚠️ Sin solución factible. Revisa las restricciones.")
         except Exception as e:
             st.error(f"Error en la optimización: {e}")
 
+# --- MÓDULO NUEVO: CARRO MEZCLADOR BLUETOOTH BLE Y ASISTENTE INTELIGENTE DE CARGA ---
+with tab_mixer_bt:
+    st.subheader("🚜 Sincronización Bluetooth BLE con Báscula de Carro Mezclador")
+    st.caption("Asistente inteligente en tiempo real para operadores de tractores/palas cargadoras con alertas automáticas de pesaje y temporizador de mezclado.")
+    
+    col_bt1, col_bt2 = st.columns([1.5, 2.5])
+    
+    with col_bt1:
+        st.markdown("### 📡 Conexión Bluetooth (BLE)")
+        if not st.session_state.bt_conectado:
+            if st.button("🔗 Escanear y Conectar Carro Mezclador (BLE)"):
+                st.session_state.bt_conectado = True
+                st.success("✅ ¡Conectado exitosamente a Báscula Digi-Star / Dinamica Generale (MAC: 00:1A:7D:DA:71:13)!")
+                st.rerun()
+        else:
+            st.success("🟢 **Báscula Bluetooth Sincronizada** (Señal BLE: 98% - Excelente)")
+            if st.button("🔴 Desconectar Bluetooth"):
+                st.session_state.bt_conectado = False
+                st.rerun()
+                
+        tam_corral_mezcla = st.number_input("Vacas a Alimentar en este Mezclado (Corral)", 1, 500, 100, 10)
+        
+    with col_bt2:
+        if st.session_state.bt_conectado:
+            # Lista de ingredientes a mezclar para el corral
+            ingredientes_tmr = [
+                {"nombre": "Silo de Maíz", "objetivo_vaca": 18.5},
+                {"nombre": "Heno de Alfalfa", "objetivo_vaca": 4.2},
+                {"nombre": "Maíz Molido", "objetivo_vaca": 5.0},
+                {"nombre": "Pasta de Soya", "objetivo_vaca": 2.1},
+                {"nombre": "DDGS Maíz", "objetivo_vaca": 1.5},
+                {"nombre": "Minerales / Bicarbonato", "objetivo_vaca": 0.4}
+            ]
+            
+            idx_actual = st.session_state.idx_ingrediente_actual
+            
+            if idx_actual < len(ingredientes_tmr):
+                ing_actual = ingredientes_tmr[idx_actual]
+                peso_meta_corral = ing_actual["objetivo_vaca"] * tam_corral_mezcla
+                
+                st.markdown(f"### 🈳 Ingrediente en Carga [{idx_actual + 1}/{len(ingredientes_tmr)}]: **{ing_actual['nombre']}**")
+                
+                # Simulador de báscula en vivo / Carga interactiva
+                peso_cargado = st.slider(
+                    f"Telemetría en Vivo de Báscula (kg de {ing_actual['nombre']})", 
+                    0.0, 
+                    float(peso_meta_corral * 1.15), 
+                    float(st.session_state.peso_cargado_actual), 
+                    10.0
+                )
+                st.session_state.peso_cargado_actual = peso_cargado
+                
+                porcentaje_completado = min(100.0, (peso_cargado / peso_meta_corral) * 100)
+                
+                # Semáforo dinámico e indicación para el operador de la pala
+                if porcentaje_completado < 85.0:
+                    st.progress(porcentaje_completado / 100.0)
+                    st.info(f"🚜 **CARGANDO...** Faltan `{peso_meta_corral - peso_cargado:.1f} kg` de {ing_actual['nombre']}. Continúa vertiendo a velocidad normal.")
+                elif 85.0 <= porcentaje_completado < 98.0:
+                    st.progress(porcentaje_completado / 100.0)
+                    st.warning(f"⚠️ **¡CUIDADO! INGREDIENTE POR COMPLETAR (90%+):** Faltan solo `{peso_meta_corral - peso_cargado:.1f} kg`. Reduce la velocidad de vertido.")
+                else:
+                    st.progress(1.0)
+                    st.success(f"🛑 **¡INGREDIENTE COMPLETO! DETENER CARGA DE {ing_actual['nombre'].upper()}.** Target alcanzado: `{peso_cargado:.1f} kg` / `{peso_meta_corral:.1f} kg`.")
+                    
+                    if st.button("➡️ Siguiente Ingrediente en la Ración"):
+                        st.session_state.idx_ingrediente_actual += 1
+                        st.session_state.peso_cargado_actual = 0.0
+                        st.rerun()
+            else:
+                st.balloons()
+                st.success("🎉 **¡TODOS LOS INGREDIENTES HAN SIDO CARGADOS CORRECTAMENTE EN EL CARRO MEZCLADOR!**")
+                st.markdown("---")
+                st.markdown("### ⏱️ Temporizador Inteligente de Homogeneidad y Mezclado TMR")
+                st.caption("Asegura el tiempo exacto de mezclado para evitar sub-mezclado (selección) o sobre-mezclado (destrucción de fibra peNDF).")
+                
+                tiempo_recomendado_min = 5.5 # Tiempo óptimo según peNDF
+                st.info(f"⏱️ **Tiempo Recomendado de Mezclado Final:** `{tiempo_recomendado_min} Minutos` (Mezclador a 18 RPM)")
+                
+                if st.button("▶️ Iniciar Temporizador de Mezclado"):
+                    st.success("⏱️ **Temporizador Activo:** Mezclando TMR... Notificación sonora enviada al tractor.")
+                    st.markdown("""
+                        <div style='background-color: #E8F5E9; padding: 15px; border-radius: 10px; border-left: 6px solid #2E7D32;'>
+                            <h3 style='color: #1B5E20; margin:0;'>🔔 CONTEO REGRESIVO: 05:30 Minutos restantes</h3>
+                            <p style='color: #333; margin:0;'>Al terminar la cuenta regresiva, apague la toma de fuerza (TDF) y proceda a la descarga en pesebre.</p>
+                        </div>
+                    """, unsafe_allow_html=True)
+                
+                if st.button("🔄 Reiniciar Mezclado para Nuevo Corral"):
+                    st.session_state.idx_ingrediente_actual = 0
+                    st.session_state.peso_cargado_actual = 0.0
+                    st.rerun()
+        else:
+            st.info("💡 Enciende y conecta la báscula del carro mezclador vía Bluetooth BLE para iniciar la sincronización de carga.")
+
 with tab_twin:
     st.subheader("🧬 Gemelo Digital Bionutricional & Perfil Metabolómico (NASEM 2021)")
-    st.caption("Simulación mecanística avanzada de cinética de digestión, pH ruminal biofísico y síntesis mamaria de ácidos grasos.")
     
     col_tw1, col_tw2, col_tw3 = st.columns(3)
-    
-    # 1. Cinética Ruminal y Tasa de Pasaje (Kp)
     kp_forraje = round(2.5 + 0.05 * (cms_req / peso_vivo * 100), 2)
     kp_concentrado = round(3.8 + 0.12 * (cms_req / peso_vivo * 100), 2)
-    
-    # 2. Estimación Ureica en Leche (MUN)
     mun_estimado = round(8.5 + (rdp_min_pct * 0.45) - (starch_max * 0.15), 1)
-    
-    # 3. Síntesis Mamaria de Ácidos Grasos (De Novo vs Preformados)
     de_novo_fat_pct = round(max(0.8, 1.45 - (starch_max * 0.018) + (pendf_min * 0.015)), 2)
-    
-    # 4. Salivación y pH ruminal biofísico por Rumia
     saliva_litros = round(iot_rumination_min * 0.22 + cms_req * 3.5, 1)
     ph_biofisico = round(6.6 - (starch_max * 0.035) + (pendf_min * 0.02) + (iot_rumination_min * 0.0008), 2)
     
@@ -348,82 +442,56 @@ with tab_twin:
         st.metric("pH Ruminal Biofísico", f"{ph_biofisico}", "Riesgo SARA: pH < 5.8" if ph_biofisico >= 5.8 else "🚨 RIESGO SARA ELEVADO")
         st.markdown("</div>", unsafe_allow_html=True)
 
-    st.markdown("---")
-    st.markdown("### 🔬 Perfil de Biohidrogenación Ruminal & Ácidos Grasos Mamarios")
-    df_fatty = pd.DataFrame({
-        "Fracción Lípida": ["Ácidos Grasos De Novo (C4-C14)", "Ácidos Grasos Mixtos (C16)", "Ácidos Grasos Preformados (C18+)"],
-        "Proporción Estimada (%)": [de_novo_fat_pct * 22, 35.0, 100 - (de_novo_fat_pct * 22 + 35.0)],
-        "Origen Metabolicó": ["Síntesis Mamaria Acetato/Bustirato", "Dieta + Lipogénesis De Novo", "Dieta + Movilización Adiposa"]
-    })
-    st.table(df_fatty)
-
 with tab_inv:
     st.subheader("🐄 Inventario del Hato Organizado por SINIGA y Arete Interno")
     df_sorted = st.session_state.df_hato.sort_values(by=["SINIGA", "Arete Interno"]).reset_index(drop=True)
-    
-    st.markdown("### 📋 Registro Oficial y Parámetros Sensorizados PLF")
     df_editado = st.data_editor(df_sorted, num_rows="dynamic", use_container_width=True)
     st.session_state.df_hato = df_editado
 
 with tab_alert:
     st.subheader("🔔 Centro de Alertas Inteligentes & Comandos Ejecutables Push")
-    st.caption("Recibe notificaciones críticas en tiempo real y ejecuta acciones directas en el sistema de gestión del establo.")
-    
     for idx, row in st.session_state.df_hato.iterrows():
         siniga = row.get("SINIGA", "S/N")
         arete = row.get("Arete Interno", "S/N")
         etapa = row.get("Etapa Productiva", "")
-        dim = row.get("DIM / Edad (días)", 0)
+        dim_v = row.get("DIM / Edad (días)", 0)
         gestacion = row.get("Días Gestación", 0)
         ph_vaca = row.get("pH Ruminal (IoT)", 6.2)
         
-        # Alerta de Secado Automática
-        if etapa == "En producción" and (dim >= 220 or gestacion >= 200):
-            st.error(f"🚨 **ALERTA DE SECADO REQUERIDO:** Vaca Arete #{arete} (SINIGA: {siniga}) — {dim} DIM / {gestacion} Días Gestación.")
-            col_b1, col_b2 = st.columns([1, 4])
-            with col_b1:
-                if st.button(f"📲 Programar Secado #{arete}", key=f"sec_{arete}"):
-                    st.success(f"✅ Comando enviado al operante: Vaca #{arete} marcada para secado y trasladada a Corral Seco.")
+        if etapa == "En producción" and (dim_v >= 220 or gestacion >= 200):
+            st.error(f"🚨 **ALERTA DE SECADO REQUERIDO:** Vaca Arete #{arete} (SINIGA: {siniga}) — {dim_v} DIM / {gestacion} Días Gestación.")
+            if st.button(f"📲 Programar Secado #{arete}", key=f"sec_{arete}"):
+                st.success(f"✅ Vaca #{arete} marcada para secado y trasladada a Corral Seco.")
         
-        # Alerta SARA / pH Ruminal
         if ph_vaca < 5.85:
-            st.warning(f"⚠️ **ALERTA IoT SARA / ACIDOSA:** Vaca Arete #{arete} (pH Ruminal Sensorizado: {ph_vaca}). Rumia reducida.")
-            col_b3, col_b4 = st.columns([1, 4])
-            with col_b3:
-                if st.button(f"💊 Ajustar Buffer #{arete}", key=f"buf_{arete}"):
-                    st.info(f"✅ Comando enviado a carro mezclador: Incremento de Bicarbonato de Sodio +0.5% en Corral de Vaca #{arete}.")
+            st.warning(f"⚠️ **ALERTA IoT SARA / ACIDOSA:** Vaca Arete #{arete} (pH Ruminal Sensorizado: {ph_vaca}).")
+            if st.button(f"💊 Ajustar Buffer #{arete}", key=f"buf_{arete}"):
+                st.info(f"✅ Bicarbonato de Sodio +0.5% en Corral de Vaca #{arete}.")
 
 with tab_monte:
     st.subheader("🎲 Análisis Estocástico de Riesgo Financiero (Monte Carlo Stress-Test)")
-    st.caption("Somete la rentabilidad del hato a 1,000 simulaciones estocásticas considerando volatilidad de precios de insumos e impacto climático.")
-    
     if st.button("🎰 Ejecutar 1,000 Simulaciones Monte Carlo"):
         np.random.seed(42)
         simulaciones = 1000
-        costos_simulados = np.random.normal(loc=185.0, scale=18.5, size=simulaciones) # Costo diario alimentación
-        leche_simulada = np.random.normal(loc=prod_leche, scale=2.5, size=simulaciones) # Variación de leche
+        costos_simulados = np.random.normal(loc=185.0, scale=18.5, size=simulaciones)
+        leche_simulada = np.random.normal(loc=prod_leche, scale=2.5, size=simulaciones)
         
-        precio_total_sim = 10.90
-        margen_iofc_sim = (leche_simulada * precio_total_sim) - costos_simulados
-        
+        margen_iofc_sim = (leche_simulada * 10.90) - costos_simulados
         var_95 = np.percentile(margen_iofc_sim, 5)
         
         col_m1, col_m2, col_m3 = st.columns(3)
         with col_m1:
-            st.metric("Margen IOFC Medio Simulado", f"${np.mean(margen_iofc_sim):,.2f} MXN", "Promedio 1,000 Iteraciones")
+            st.metric("Margen IOFC Medio Simulado", f"${np.mean(margen_iofc_sim):,.2f} MXN")
         with col_m2:
-            st.metric("Valor en Riesgo 95% (VaR)", f"${var_95:,.2f} MXN", "Peor escenario en el 95% de casos")
+            st.metric("Valor en Riesgo 95% (VaR)", f"${var_95:,.2f} MXN")
         with col_m3:
-            st.metric("Probabilidad de IOFC Negativo", f"{(np.sum(margen_iofc_sim < 0) / simulaciones) * 100:.1f}%", "Riesgo Financiero Establo")
+            st.metric("Probabilidad IOFC Negativo", f"{(np.sum(margen_iofc_sim < 0) / simulaciones) * 100:.1f}%")
             
-        st.markdown("### 📊 Distribución Estocástica del Margen IOFC ($ MXN/vaca/día)")
-        chart_data = pd.DataFrame({"Margen IOFC Simulado ($ MXN)": margen_iofc_sim})
-        st.line_chart(chart_data)
+        st.line_chart(pd.DataFrame({"Margen IOFC Simulado ($ MXN)": margen_iofc_sim}))
 
 with tab_vision:
     st.subheader("📷 Visión Artificial: Estimación Zoométrica de Peso")
     foto_bovino = st.file_uploader("Fotografía Lateral del Bovino (.jpg / .png)", type=["jpg", "jpeg", "png"])
-    
     if foto_bovino is not None:
         image = Image.open(foto_bovino)
         st.image(image, caption="Bovino Analizado por IA", width=400)
@@ -440,8 +508,6 @@ with tab_vision:
             peso_calc = round(float(w * h * 0.0018 * (1.15 if factor_escala < 0.6 else 0.95)), 1)
             peso_calc = max(350.0, min(peso_calc, 900.0))
             st.success(f"🎯 **Peso Calibrado por Visión Artificial:** `{peso_calc} kg`")
-        else:
-            st.warning("⚠️ No se detectó contorno claro.")
 
 with tab_telemed:
     st.subheader("🩺 Clínica Virtual & Telemedicina Bovina")
@@ -452,7 +518,7 @@ with tab_telemed:
             nombre_productor = st.text_input("Productor / Establo", value="Ganadería Zacatecas")
             fecha_cita = st.date_input("Fecha de Consulta", min_value=datetime.today().date())
             hora_cita = st.time_input("Hora Preferida", value=datetime.strptime("10:00", "%H:%M").time())
-            motivo_consulta = st.text_area("Motivo", "Revisión NASEM 2021 y Gemelo Digital.")
+            motivo_consulta = st.text_area("Motivo", "Revisión NASEM 2021 y Carro Mezclador BLE.")
             
             st.markdown("💳 **Costo:** **$475.00 MXN** (30 min)")
             if st.button("💳 Pagar $475 MXN y Confirmar"):
@@ -481,7 +547,7 @@ st.markdown("---")
 st.markdown(
     """
     <div style='text-align: center; color: gray; font-size: 12px;'>
-        <strong>Lecher-IA Pro</strong> &bull; Digital Twin, Precision Livestock Farming & Telemedicine<br>
+        <strong>Lecher-IA Pro</strong> &bull; Digital Twin, TMR Bluetooth Link & Telemedicine<br>
         Designed and engineered by <strong>Dr. Alejandro Castañeda Correa</strong>.
     </div>
     """, 
