@@ -68,7 +68,6 @@ cms_req = st.sidebar.number_input("CMS Objetivo (kg MS/día)", min_value=12.0, m
 nel_req = st.sidebar.slider("Energía Neta Lactancia (NEL Mcal/kg MS)", 1.45, 1.85, 1.68, 0.01)
 mp_req_g = st.sidebar.number_input("Proteína Metabolizable (PM g/día)", min_value=1200, max_value=3500, value=int(ecm * 72 + 500), step=50)
 
-# Requerimientos de Proteína RDP y RUP para síntesis microbiana
 rdp_min_pct = st.sidebar.slider("Proteína Degradable Rumen (RDP % en MS)", 8.0, 13.0, 10.0, 0.2)
 rup_min_pct = st.sidebar.slider("Proteína Sobrepasante (RUP % en MS)", 4.0, 9.0, 6.0, 0.2)
 
@@ -85,9 +84,10 @@ st.markdown(f"""
 > **ECM (Leche Corregida):** `{ecm:.2f} kg/día` &bull; **CMS Estimado NASEM:** `{cms_estimado_nasem} kg MS/día` &bull; **Densidad Energética:** `{nel_req} Mcal/kg MS`
 """)
 
-# --- 4. BASE DE DATOS EXTENDIDA DE INGREDIENTES CON FRACCIONES RDP Y RUP ---
+# --- 4. BASE DE DATOS EXTENDIDA CON COLUMNA "Disponible" ---
 datos_base = {
     "Ingrediente": ["Silo de Maíz", "Heno de Alfalfa", "Maíz Molido", "Sorgo Grano", "Pasta de Soya", "DDGS Maíz", "Melasa Caña", "Salvado Trigo", "Grasa Sobrepaso", "Carbonato Calcio"],
+    "Disponible": [True, True, True, True, True, True, True, True, True, True],
     "Costo": [2.10, 4.20, 5.50, 4.90, 9.90, 7.20, 3.60, 4.60, 25.00, 1.80],
     "NEL": [1.62, 1.42, 2.15, 2.02, 2.05, 1.98, 1.78, 1.68, 5.20, 0.00],        # Mcal/kg MS
     "MP": [62.0, 115.0, 75.0, 70.0, 310.0, 190.0, 25.0, 110.0, 0.0, 0.0],       # g/kg MS
@@ -105,8 +105,8 @@ datos_base = {
 
 df_ingredientes = pd.DataFrame(datos_base)
 
-st.subheader("📋 Matriz Nutricional Completa de Ingredientes")
-st.caption("Puedes modificar precios, aportes nutricionales y límites de inclusión directamente en la tabla.")
+st.subheader("📋 Matriz Nutricional y Disponibilidad de Ingredientes")
+st.caption("Marca o desmarca la columna **'Disponible'** según el inventario actual de tu establo. Modifica precios o límites cuando lo requieras.")
 editable_df = st.data_editor(df_ingredientes, num_rows="fixed")
 
 # --- 5. MOTOR DE OPTIMIZACIÓN LINEAL (PuLP) ---
@@ -117,37 +117,34 @@ if st.button("🚀 Ejecutar Optimización Avanzada de Dietas"):
         variables = {}
         for idx, row in editable_df.iterrows():
             ing = str(row["Ingrediente"])
+            is_available = bool(row["Disponible"])
+            
+            # Si el ingrediente NO está disponible, fijamos sus límites a 0 obligatoriamente
+            if is_available:
+                min_inc = float(row["Min_Inclusion"])
+                max_inc = float(row["Max_Inclusion"])
+            else:
+                min_inc = 0.0
+                max_inc = 0.0
+                
             variables[ing] = pulp.LpVariable(
                 f"x_{ing.replace(' ', '_')}", 
-                lowBound=float(row["Min_Inclusion"]), 
-                upBound=float(row["Max_Inclusion"])
+                lowBound=min_inc, 
+                upBound=max_inc
             )
             
         # Función Objetivo: Minimizar Costo Total Diario
         prob += pulp.lpSum([variables[str(row["Ingrediente"])] * float(row["Costo"]) for idx, row in editable_df.iterrows()])
         
         # RESTRICCIONES NUTRICIONALES Y METABÓLICAS RIGUROSAS
-        # 1. Consumo Total de Materia Seca
         prob += pulp.lpSum([variables[str(row["Ingrediente"])] for idx, row in editable_df.iterrows()]) == float(cms_req), "CMS_Total"
-        
-        # 2. Requerimiento Energético (NEL)
         prob += pulp.lpSum([variables[str(row["Ingrediente"])] * float(row["NEL"]) for idx, row in editable_df.iterrows()]) >= float(nel_req) * float(cms_req), "Min_NEL"
-        
-        # 3. Proteína Metabolizable Total (PM)
         prob += pulp.lpSum([variables[str(row["Ingrediente"])] * float(row["MP"]) for idx, row in editable_df.iterrows()]) >= float(mp_req_g), "Min_MP"
-        
-        # 4. Proteína Degradable en Rumen (RDP)
         prob += pulp.lpSum([variables[str(row["Ingrediente"])] * (float(row["RDP"]) / 100.0) for idx, row in editable_df.iterrows()]) >= (float(rdp_min_pct) / 100.0) * float(cms_req), "Min_RDP"
-        
-        # 5. Proteína Sobrepasante (RUP)
         prob += pulp.lpSum([variables[str(row["Ingrediente"])] * (float(row["RUP"]) / 100.0) for idx, row in editable_df.iterrows()]) >= (float(rup_min_pct) / 100.0) * float(cms_req), "Min_RUP"
-        
-        # 6. Salud Ruminal (peNDF, Almidón y EE)
         prob += pulp.lpSum([variables[str(row["Ingrediente"])] * (float(row["peNDF"]) / 100.0) for idx, row in editable_df.iterrows()]) >= (float(pendf_min) / 100.0) * float(cms_req), "Min_peNDF"
         prob += pulp.lpSum([variables[str(row["Ingrediente"])] * (float(row["Almidon"]) / 100.0) for idx, row in editable_df.iterrows()]) <= (float(starch_max) / 100.0) * float(cms_req), "Max_Starch"
         prob += pulp.lpSum([variables[str(row["Ingrediente"])] * (float(row["EE"]) / 100.0) for idx, row in editable_df.iterrows()]) <= (float(ee_max) / 100.0) * float(cms_req), "Max_EE"
-        
-        # 7. Minerales Básicos (Ca y P)
         prob += pulp.lpSum([variables[str(row["Ingrediente"])] * (float(row["Ca"]) / 100.0) for idx, row in editable_df.iterrows()]) >= (float(ca_min) / 100.0) * float(cms_req), "Min_Ca"
         prob += pulp.lpSum([variables[str(row["Ingrediente"])] * (float(row["P"]) / 100.0) for idx, row in editable_df.iterrows()]) >= (float(p_min) / 100.0) * float(cms_req), "Min_P"
         
@@ -156,7 +153,7 @@ if st.button("🚀 Ejecutar Optimización Avanzada de Dietas"):
         
         # Estado de la solución
         if prob.status == 1:
-            st.success("✅ ¡Dieta optimizada exitosamente bajo criterios de mínima restricción económica y máxima precisión NASEM!")
+            st.success("✅ ¡Dieta optimizada exitosamente considerando los ingredientes disponibles en tu inventario!")
             
             resultados = []
             costo_total = 0
@@ -244,7 +241,7 @@ if st.button("🚀 Ejecutar Optimización Avanzada de Dietas"):
                     st.success("✅ **Fase de Balance Energético Positivo:** El consumo de materia seca satisface los requerimientos para producción y recuperación de condición corporal.")
 
         else:
-            st.warning("⚠️ No se encontró solución factible. Las restricciones nutricionales son aplicadas estrictamente. Intenta ampliar los rangos de inclusión de los ingredientes o ajustar los límites de la barra lateral.")
+            st.warning("⚠️ No se encontró solución factible. Es posible que hayas desactivado ingredientes clave (como forrajes principales) y las restricciones nutricionales no se puedan cumplir. Vuelve a habilitar ingredientes necesarios en la tabla o ajusta los límites.")
             
     except Exception as e:
         st.error(f"Ocurrió un error al procesar el modelo matemático: {e}")
