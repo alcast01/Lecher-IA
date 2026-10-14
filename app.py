@@ -80,25 +80,23 @@ pct_grasa = st.sidebar.slider("Grasa en Leche (%)", 2.8, 6.0, grasa_def, 0.1)
 pct_proteina = st.sidebar.slider("Proteína Verd. en Leche (%)", 2.6, 4.5, proteina_def, 0.1)
 
 # --- AJUSTES MATEMÁTICOS NASEM POR RAZA Y CLIMA ---
-# Coeficiente de mantenimiento energético (Mcal NEL / kg BW^0.75): Jersey requiere ~15% más por unidad metabólica
 coef_mantenimiento = 0.080 if raza == "Holstein-Friesian" else 0.092
 nel_mantenimiento = coef_mantenimiento * (peso_vivo ** 0.75)
 
 # Factor de estrés térmico por temperatura ambiental (°C)
-# Si T > 25°C, hay depresión de consumo (CMS) y aumento de costo energético por termorregulación
 factor_estres_cms = 1.0
 factor_estres_energetico = 1.0
 if temp_amb > 25:
     grados_estres = temp_amb - 25
-    factor_estres_cms = max(0.80, 1.0 - (grados_estres * 0.015)) # Depresión de hasta 20% en calor extremo
-    factor_estres_energetico = 1.0 + (grados_estres * 0.007)      # Incremento de requerimiento por frecuencia respiratoria
+    factor_estres_cms = max(0.80, 1.0 - (grados_estres * 0.015))
+    factor_estres_energetico = 1.0 + (grados_estres * 0.007)
 
 # Cálculos Metabólicos NASEM (2021)
 fcm_35 = (0.4324 * prod_leche) + (16.216 * (prod_leche * (pct_grasa / 100.0)))
 ecm = (0.327 * prod_leche) + (12.95 * (prod_leche * (pct_grasa / 100.0))) + (7.2 * (prod_leche * (pct_proteina / 100.0)))
 
-# Estimación Dinámica del Consumo de Materia Seca (CMS) ajustada por Raza y Estrés Térmico
-factor_raza_cms = 1.0 if raza == "Holstein-Friesian" else 0.82 # Jersey consume menor volumen relativo pero mayor densidad
+# Estimación Dinámica del Consumo de Materia Seca (CMS)
+factor_raza_cms = 1.0 if raza == "Holstein-Friesian" else 0.82
 cms_base_nasem = ((0.022 * peso_vivo) + (0.38 * fcm_35)) * factor_raza_cms
 factor_dim_curva = 1 - np.exp(-0.04 * dim) if dim < 50 else 1.0
 cms_estimado_nasem = round(cms_base_nasem * factor_dim_curva * factor_estres_cms, 2)
@@ -111,7 +109,17 @@ cms_req = st.sidebar.number_input("CMS Objetivo (kg MS/día)", min_value=8.0, ma
 nel_req_base = 1.45 + (ecm * 0.012)
 nel_req = st.sidebar.slider("Energía Neta Lactancia (NEL Mcal/kg MS)", 1.45, 1.95, round(nel_req_base * factor_estres_energetico, 2), 0.01)
 
-mp_req_g = st.sidebar.number_input("Proteína Metabolizable (PM g/día)", min_value=1000, max_value=3500, value=int(ecm * 75 + (nel_mantenimiento * 100)), step=50)
+# --- CORRECCIÓN DEL LÍMITE Y CÁLCULO SEGURO DE PROTEÍNA METABOLIZABLE ---
+mp_calc = int(ecm * 75 + (nel_mantenimiento * 100))
+mp_seguro = max(1000, min(mp_calc, 4500))  # Asegura estar dentro del rango [1000, 4500]
+
+mp_req_g = st.sidebar.number_input(
+    "Proteína Metabolizable (PM g/día)", 
+    min_value=1000, 
+    max_value=4500, 
+    value=mp_seguro, 
+    step=50
+)
 
 rdp_min_pct = st.sidebar.slider("Proteína Degradable Rumen (RDP % en MS)", 8.0, 13.0, 10.0, 0.2)
 rup_min_pct = st.sidebar.slider("Proteína Sobrepasante (RUP % en MS)", 4.0, 9.0, 6.0, 0.2)
