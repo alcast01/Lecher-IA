@@ -79,7 +79,7 @@ if st.button("🚀 Ejecutar Optimización Avanzada"):
         # Función Objetivo: Minimizar Costo Total
         prob += lpSum([variables[str(row["Ingrediente"])] * float(row["Costo"]) for idx, row in editable_df.iterrows()])
         
-        # Restricciones
+        # Restricciones Lineales
         prob += lpSum([variables[str(row["Ingrediente"])] for idx, row in editable_df.iterrows()]) == float(cms_req), "CMS_Total"
         prob += lpSum([variables[str(row["Ingrediente"])] * float(row["NEL"]) for idx, row in editable_df.iterrows()]) >= float(nel_req) * float(cms_req), "Min_NEL"
         prob += lpSum([variables[str(row["Ingrediente"])] * float(row["MP"]) for idx, row in editable_df.iterrows()]) >= float(mp_req_g), "Min_MP"
@@ -87,10 +87,10 @@ if st.button("🚀 Ejecutar Optimización Avanzada"):
         prob += lpSum([variables[str(row["Ingrediente"])] * (float(row["Almidon"]) / 100.0) for idx, row in editable_df.iterrows()]) <= (float(starch_max) / 100.0) * float(cms_req), "Max_Starch"
         prob += lpSum([variables[str(row["Ingrediente"])] * (float(row["EE"]) / 100.0) for idx, row in editable_df.iterrows()]) <= (float(ee_max) / 100.0) * float(cms_req), "Max_EE"
         
-        # Resolver
+        # Resolver el modelo
         prob.solve()
         
-        # Verificación de estado compatible
+        # Validación de estado con la nueva sintaxis compatible de PuLP
         if prob.status == pulp.LpStatusOptimal:
             st.success("✅ ¡Dieta formulada exitosamente bajo estándares científicos rigurosos!")
             
