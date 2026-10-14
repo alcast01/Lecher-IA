@@ -95,23 +95,24 @@ if temp_amb > 25:
 fcm_35 = (0.4324 * prod_leche) + (16.216 * (prod_leche * (pct_grasa / 100.0)))
 ecm = (0.327 * prod_leche) + (12.95 * (prod_leche * (pct_grasa / 100.0))) + (7.2 * (prod_leche * (pct_proteina / 100.0)))
 
-# Estimación Dinámica del Consumo de Materia Seca (CMS)
+# Estimación Dinámica del Consumo de Materia Seca (CMS) con protección de rango
 factor_raza_cms = 1.0 if raza == "Holstein-Friesian" else 0.82
 cms_base_nasem = ((0.022 * peso_vivo) + (0.38 * fcm_35)) * factor_raza_cms
 factor_dim_curva = 1 - np.exp(-0.04 * dim) if dim < 50 else 1.0
-cms_estimado_nasem = round(cms_base_nasem * factor_dim_curva * factor_estres_cms, 2)
+cms_estimado_calc = round(cms_base_nasem * factor_dim_curva * factor_estres_cms, 2)
+cms_estimado_nasem = max(5.0, min(cms_estimado_calc, 35.0)) # Seguro dentro del rango
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("### ⚙️ Requerimientos Nutricionales Estimados")
-cms_req = st.sidebar.number_input("CMS Objetivo (kg MS/día)", min_value=8.0, max_value=35.0, value=cms_estimado_nasem, step=0.5)
+cms_req = st.sidebar.number_input("CMS Objetivo (kg MS/día)", min_value=5.0, max_value=35.0, value=cms_estimado_nasem, step=0.5)
 
 # Densidad energética ajustada por estrés térmico
 nel_req_base = 1.45 + (ecm * 0.012)
 nel_req = st.sidebar.slider("Energía Neta Lactancia (NEL Mcal/kg MS)", 1.45, 1.95, round(nel_req_base * factor_estres_energetico, 2), 0.01)
 
-# --- CORRECCIÓN DEL LÍMITE Y CÁLCULO SEGURO DE PROTEÍNA METABOLIZABLE ---
+# Cálculo seguro de Proteína Metabolizable
 mp_calc = int(ecm * 75 + (nel_mantenimiento * 100))
-mp_seguro = max(1000, min(mp_calc, 4500))  # Asegura estar dentro del rango [1000, 4500]
+mp_seguro = max(1000, min(mp_calc, 4500))
 
 mp_req_g = st.sidebar.number_input(
     "Proteína Metabolizable (PM g/día)", 
