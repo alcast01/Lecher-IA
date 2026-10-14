@@ -15,7 +15,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- MÓDULO 5: REPORTE OPERATIVO Y FINANCIERO EN PDF ---
+# --- MÓDULO 5: REPORTE OPERATIVO Y FINANCIERO EN PDF (CORREGIDO) ---
 def generar_pdf_tmr_financiero(df_resultados, costo_alimento, cms_req, ecm, raza, estado_prod, tam_corral, precio_leche, iofc, ebitda_diario, costo_total_litro, break_even_leche, ch4_vaca, n_exc_vaca):
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=36)
@@ -27,7 +27,7 @@ def generar_pdf_tmr_financiero(df_resultados, costo_alimento, cms_req, ecm, raza
         parent=styles['Heading1'],
         fontSize=16,
         textColor=colors.HexColor('#054A29'),
-        spaceAfter=6
+        spaceAfter=4
     )
     
     subtitle_style = ParagraphStyle(
@@ -35,23 +35,17 @@ def generar_pdf_tmr_financiero(df_resultados, costo_alimento, cms_req, ecm, raza
         parent=styles['Normal'],
         fontSize=9,
         textColor=colors.HexColor('#555555'),
-        spaceAfter=12
+        spaceAfter=10
     )
     
     story.append(Paragraph("<b>LECHER-IA Pro — ESTADO FINANCIERO Y TMR OPERATIVA</b>", title_style))
     story.append(Paragraph(f"<b>Formulador:</b> Dr. Alejandro Castañeda Correa &nbsp;|&nbsp; <b>Perfil:</b> {raza} ({estado_prod}) &nbsp;|&nbsp; <b>Corral:</b> {tam_corral} vacas", subtitle_style))
     story.append(Spacer(1, 4))
     
-    # Resumen Financiero Ejecutivo
-    summary_text = (
-        f"<b>Costo Alimento/Vaca:</b> ${costo_alimento:.2f} MXN &nbsp;|&nbsp; "
-        f"<b>Costo Total/L:</b> ${costo_total_litro:.2f} MXN &nbsp;|&nbsp; "
-        f"<b>Punto Equilibrio:</b> {break_even_leche:.1f} L/vaca<br>"
-        f"<b>IOFC/Vaca:</b> ${iofc:.2f} MXN/día &nbsp;|&nbsp; "
-        f"<b>EBITDA Corral/Mes:</b> ${ebitda_diario * tam_corral * 30:,.2f} MXN &nbsp;|&nbsp; "
-        f"<b>Huella CH₄:</b> {ch4_vaca:.1f} g/día"
-    )
-    story.append(Paragraph(summary_text, styles['Normal']))
+    # Resumen Financiero Ejecutivo (Separado en Párrafos para evitar errores de sintaxis en ReportLab)
+    story.append(Paragraph(f"<b>Costo Alimento/Vaca:</b> ${costo_alimento:.2f} MXN &nbsp;|&nbsp; <b>Costo Total/L:</b> ${costo_total_litro:.2f} MXN &nbsp;|&nbsp; <b>Punto Equilibrio:</b> {break_even_leche:.1f} L/vaca", styles['Normal']))
+    story.append(Spacer(1, 2))
+    story.append(Paragraph(f"<b>IOFC/Vaca:</b> ${iofc:.2f} MXN/día &nbsp;|&nbsp; <b>EBITDA Corral/Mes:</b> ${ebitda_diario * tam_corral * 30.5:,.2f} MXN &nbsp;|&nbsp; <b>Huella CH₄:</b> {ch4_vaca:.1f} g/día", styles['Normal']))
     story.append(Spacer(1, 10))
     
     table_data = [["Ingrediente", "MS %", "Base Seca (kg/vaca)", "Base Fresca (kg/vaca)", f"Carga Corral ({tam_corral} vacas)"]]
@@ -78,7 +72,7 @@ def generar_pdf_tmr_financiero(df_resultados, costo_alimento, cms_req, ecm, raza
     
     story.append(t)
     story.append(Spacer(1, 12))
-    story.append(Paragraph("<i>Análisis bio-económico y financiero automatizado por Lecher-IA Pro under NASEM 2021 standards.</i>", styles['Normal']))
+    story.append(Paragraph("<i>Análisis bio-económico y financiero automatizado por Lecher-IA Pro bajo normativas NASEM (2021).</i>", styles['Normal']))
     
     doc.build(story)
     buffer.seek(0)
@@ -328,7 +322,6 @@ if st.button("🚀 Ejecutar Optimización Bio-Económica y Financiera"):
             costo_por_litro = costo_total_diario_vaca / prod_leche
             margen_neto_pct = (ebitda_vaca_dia / ingreso_total_vaca) * 100
             
-            # Punto de Equilibrio de Producción (Litros de leche necesarios para cubrir OpEx Total)
             break_even_leche = (costo_total_diario_vaca - ingresos_extras_subproductos) / precio_leche_total
             
             # --- CÁLCULO ESTEQUIOMÉTRICO BMMCO (Metano y Nitrógeno) ---
