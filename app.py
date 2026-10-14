@@ -100,7 +100,7 @@ factor_raza_cms = 1.0 if raza == "Holstein-Friesian" else 0.82
 cms_base_nasem = ((0.022 * peso_vivo) + (0.38 * fcm_35)) * factor_raza_cms
 factor_dim_curva = 1 - np.exp(-0.04 * dim) if dim < 50 else 1.0
 cms_estimado_calc = round(cms_base_nasem * factor_dim_curva * factor_estres_cms, 2)
-cms_estimado_nasem = max(5.0, min(cms_estimado_calc, 35.0)) # Seguro dentro del rango
+cms_estimado_nasem = max(5.0, min(cms_estimado_calc, 35.0))
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("### ⚙️ Requerimientos Nutricionales Estimados")
@@ -122,18 +122,18 @@ mp_req_g = st.sidebar.number_input(
     step=50
 )
 
-rdp_min_pct = st.sidebar.slider("Proteína Degradable Rumen (RDP % en MS)", 8.0, 13.0, 10.0, 0.2)
-rup_min_pct = st.sidebar.slider("Proteína Sobrepasante (RUP % en MS)", 4.0, 9.0, 6.0, 0.2)
+# Calibración robusta de RDP y RUP para evitar infeasibilidad
+rdp_min_pct = st.sidebar.slider("Proteína Degradable Rumen (RDP % en MS)", 6.0, 12.0, 9.0, 0.2)
+rup_min_pct = st.sidebar.slider("Proteína Sobrepasante (RUP % en MS)", 3.0, 8.0, 4.5, 0.2)
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 🛡️ Restricciones Ruminales y Minerales")
-pendf_min = st.sidebar.slider("peNDF Mínima (% en MS)", 16.0, 26.0, 20.0, 0.5)
-starch_max = st.sidebar.slider("Almidón Máximo (% MS - Prev. SARA)", 18.0, 32.0, 24.0, 0.5)
-ee_max = st.sidebar.slider("Grasa Total / EE Máxima (% MS)", 3.5, 7.0, 5.5, 0.5)
-ca_min = st.sidebar.slider("Calcio Mínimo (Ca % MS)", 0.50, 1.00, 0.70, 0.05)
-p_min = st.sidebar.slider("Fósforo Mínimo (P % MS)", 0.30, 0.55, 0.38, 0.02)
+pendf_min = st.sidebar.slider("peNDF Mínima (% en MS)", 14.0, 26.0, 18.0, 0.5)
+starch_max = st.sidebar.slider("Almidón Máximo (% MS - Prev. SARA)", 18.0, 32.0, 26.0, 0.5)
+ee_max = st.sidebar.slider("Grasa Total / EE Máxima (% MS)", 3.5, 7.0, 6.0, 0.5)
+ca_min = st.sidebar.slider("Calcio Mínimo (Ca % MS)", 0.45, 1.00, 0.65, 0.05)
+p_min = st.sidebar.slider("Fósforo Mínimo (P % MS)", 0.25, 0.55, 0.35, 0.02)
 
-# Alerta de Estrés Térmico en Interfaz
 if temp_amb > 28:
     st.sidebar.error(f"⚠️ **Alerta de Estrés Térmico ({temp_amb}°C):** Se aplicó corrección por depresión de consumo y mayor requerimiento energético.")
 
@@ -142,23 +142,23 @@ st.markdown(f"""
 > **ECM (Leche Corregida):** `{ecm:.2f} kg/día` &bull; **CMS Estimado NASEM:** `{cms_estimado_nasem} kg MS/día` &bull; **NEL Objetivo:** `{nel_req} Mcal/kg MS`
 """)
 
-# --- 4. BASE DE DATOS EXTENDIDA CON COLUMNA "Disponible" ---
+# --- 4. BASE DE DATOS EXTENDIDA CON LÍMITES FLEXIBLES Y COLUMNA "Disponible" ---
 datos_base = {
     "Ingrediente": ["Silo de Maíz", "Heno de Alfalfa", "Maíz Molido", "Sorgo Grano", "Pasta de Soya", "DDGS Maíz", "Melasa Caña", "Salvado Trigo", "Grasa Sobrepaso", "Carbonato Calcio"],
     "Disponible": [True, True, True, True, True, True, True, True, True, True],
     "Costo": [2.10, 4.20, 5.50, 4.90, 9.90, 7.20, 3.60, 4.60, 25.00, 1.80],
-    "NEL": [1.62, 1.42, 2.15, 2.02, 2.05, 1.98, 1.78, 1.68, 5.20, 0.00],        # Mcal/kg MS
-    "MP": [62.0, 115.0, 75.0, 70.0, 310.0, 190.0, 25.0, 110.0, 0.0, 0.0],       # g/kg MS
-    "RDP": [5.5, 13.0, 3.5, 4.0, 28.0, 10.0, 4.0, 12.0, 0.0, 0.0],              # % en MS
-    "RUP": [3.0, 5.0, 6.0, 6.5, 17.0, 18.0, 0.5, 4.0, 0.0, 0.0],               # % en MS
-    "FDN": [42.0, 40.0, 9.5, 12.0, 13.0, 39.0, 1.0, 39.0, 0.0, 0.0],            # % en MS
-    "peNDF": [32.0, 36.0, 2.0, 3.0, 2.0, 8.0, 0.0, 10.0, 0.0, 0.0],              # % en MS
-    "Almidon": [28.0, 2.0, 72.0, 68.0, 1.5, 5.0, 0.0, 20.0, 0.0, 0.0],          # % en MS
-    "EE": [3.2, 2.1, 3.8, 3.1, 1.5, 9.5, 0.1, 4.0, 99.0, 0.0],                 # % en MS
-    "Ca": [0.25, 1.40, 0.03, 0.04, 0.35, 0.15, 0.90, 0.12, 0.00, 38.0],          # % en MS
-    "P": [0.20, 0.25, 0.28, 0.29, 0.65, 0.75, 0.10, 0.95, 0.00, 0.02],           # % en MS
-    "Min_Inclusion": [4.0, 3.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-    "Max_Inclusion": [18.0, 12.0, 10.0, 8.0, 6.0, 4.0, 2.0, 4.0, 0.8, 0.3]
+    "NEL": [1.62, 1.42, 2.15, 2.02, 2.05, 1.98, 1.78, 1.68, 5.20, 0.00],
+    "MP": [62.0, 115.0, 75.0, 70.0, 310.0, 190.0, 25.0, 110.0, 0.0, 0.0],
+    "RDP": [5.5, 13.0, 3.5, 4.0, 28.0, 10.0, 4.0, 12.0, 0.0, 0.0],
+    "RUP": [3.0, 5.0, 6.0, 6.5, 17.0, 18.0, 0.5, 4.0, 0.0, 0.0],
+    "FDN": [42.0, 40.0, 9.5, 12.0, 13.0, 39.0, 1.0, 39.0, 0.0, 0.0],
+    "peNDF": [32.0, 36.0, 2.0, 3.0, 2.0, 8.0, 0.0, 10.0, 0.0, 0.0],
+    "Almidon": [28.0, 2.0, 72.0, 68.0, 1.5, 5.0, 0.0, 20.0, 0.0, 0.0],
+    "EE": [3.2, 2.1, 3.8, 3.1, 1.5, 9.5, 0.1, 4.0, 99.0, 0.0],
+    "Ca": [0.25, 1.40, 0.03, 0.04, 0.35, 0.15, 0.90, 0.12, 0.00, 38.0],
+    "P": [0.20, 0.25, 0.28, 0.29, 0.65, 0.75, 0.10, 0.95, 0.00, 0.02],
+    "Min_Inclusion": [3.0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    "Max_Inclusion": [22.0, 15.0, 12.0, 10.0, 10.0, 6.0, 3.0, 5.0, 1.2, 0.5]
 }
 
 df_ingredientes = pd.DataFrame(datos_base)
@@ -299,7 +299,13 @@ if st.button("🚀 Ejecutar Optimización Avanzada de Dietas"):
                     st.success("✅ **Fase de Balance Energético Positivo:** El consumo de materia seca satisface los requerimientos para producción y recuperación de condición corporal.")
 
         else:
-            st.warning("⚠️ No se encontró solución factible. Es posible que hayas desactivado ingredientes clave y las restricciones nutricionales no se puedan cumplir. Vuelve a habilitar ingredientes necesarios en la tabla o ajusta los límites.")
+            st.error("⚠️ **No se encontró solución factible.**")
+            st.info("""
+            **Diagnóstico y sugerencias para corregir la infeasibilidad:**
+            1. **Disponibilidad:** Asegúrate de tener al menos un forraje principal (Silo de Maíz o Heno de Alfalfa) y una fuente proteica (Pasta de Soya) marcados como **Disponibles**.
+            2. **Límites de Inclusión:** Amplía ligeramente los porcentajes máximos de inclusión en la tabla de ingredientes si exiges metas nutricionales muy altas.
+            3. **Requerimientos:** Relaja un poco los requerimientos extremos en la barra lateral (como un exceso de Proteína Metabolizable o RUP) si la producción configurada es muy elevada frente a los ingredientes disponibles.
+            """)
             
     except Exception as e:
         st.error(f"Ocurrió un error al procesar el modelo matemático: {e}")
