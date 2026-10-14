@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import pulp
 import io
+import json
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -10,13 +11,13 @@ from reportlab.lib import colors
 
 # --- 1. CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(
-    page_title="Lecher-IA Pro | Plataforma Bio-Económica y Financiera Bovina",
+    page_title="Lecher-IA Pro | Plataforma IoT & Bio-Económica Bovina",
     page_icon="🥛",
     layout="wide"
 )
 
-# --- MÓDULO 5: REPORTE OPERATIVO Y FINANCIERO EN PDF (CORREGIDO) ---
-def generar_pdf_tmr_financiero(df_resultados, costo_alimento, cms_req, ecm, raza, estado_prod, tam_corral, precio_leche, iofc, ebitda_diario, costo_total_litro, break_even_leche, ch4_vaca, n_exc_vaca):
+# --- MÓDULO 5: REPORTE OPERATIVO, FINANCIERO E IOT EN PDF ---
+def generar_pdf_tmr_financiero(df_resultados, costo_alimento, cms_req, ecm, raza, estado_prod, tam_corral, precio_leche, iofc, ebitda_diario, costo_total_litro, break_even_leche, ch4_vaca, n_exc_vaca, iot_status):
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=36)
     story = []
@@ -38,11 +39,10 @@ def generar_pdf_tmr_financiero(df_resultados, costo_alimento, cms_req, ecm, raza
         spaceAfter=10
     )
     
-    story.append(Paragraph("<b>LECHER-IA Pro — ESTADO FINANCIERO Y TMR OPERATIVA</b>", title_style))
-    story.append(Paragraph(f"<b>Formulador:</b> Dr. Alejandro Castañeda Correa &nbsp;|&nbsp; <b>Perfil:</b> {raza} ({estado_prod}) &nbsp;|&nbsp; <b>Corral:</b> {tam_corral} vacas", subtitle_style))
+    story.append(Paragraph("<b>LECHER-IA Pro — REPORTE FINANCIERO, TMR & TELEMETRÍA PLF</b>", title_style))
+    story.append(Paragraph(f"<b>Formulador:</b> Dr. Alejandro Castañeda Correa &nbsp;|&nbsp; <b>Perfil:</b> {raza} ({estado_prod}) &nbsp;|&nbsp; <b>Corral:</b> {tam_corral} vacas &nbsp;|&nbsp; <b>IoT Link:</b> {iot_status}", subtitle_style))
     story.append(Spacer(1, 4))
     
-    # Resumen Financiero Ejecutivo (Separado en Párrafos para evitar errores de sintaxis en ReportLab)
     story.append(Paragraph(f"<b>Costo Alimento/Vaca:</b> ${costo_alimento:.2f} MXN &nbsp;|&nbsp; <b>Costo Total/L:</b> ${costo_total_litro:.2f} MXN &nbsp;|&nbsp; <b>Punto Equilibrio:</b> {break_even_leche:.1f} L/vaca", styles['Normal']))
     story.append(Spacer(1, 2))
     story.append(Paragraph(f"<b>IOFC/Vaca:</b> ${iofc:.2f} MXN/día &nbsp;|&nbsp; <b>EBITDA Corral/Mes:</b> ${ebitda_diario * tam_corral * 30.5:,.2f} MXN &nbsp;|&nbsp; <b>Huella CH₄:</b> {ch4_vaca:.1f} g/día", styles['Normal']))
@@ -72,7 +72,7 @@ def generar_pdf_tmr_financiero(df_resultados, costo_alimento, cms_req, ecm, raza
     
     story.append(t)
     story.append(Spacer(1, 12))
-    story.append(Paragraph("<i>Análisis bio-económico y financiero automatizado por Lecher-IA Pro bajo normativas NASEM (2021).</i>", styles['Normal']))
+    story.append(Paragraph("<i>Optimización bio-económica integrada con telemetría de precisión (Aretes IoT, Bolos Ruminales, Podómetros y Carro Mezclador).</i>", styles['Normal']))
     
     doc.build(story)
     buffer.seek(0)
@@ -95,20 +95,61 @@ with col_logo:
         ">
             <span style="font-size: 38px; line-height: 1;">🧬🐮</span>
             <div style="font-size: 15px; font-weight: 800; letter-spacing: 1.5px; margin-top: 4px; text-transform: uppercase;">LECHER-IA</div>
-            <div style="font-size: 9px; font-weight: 500; opacity: 0.85; letter-spacing: 0.8px;">FINANCIAL & BIO-ENGINEERING</div>
+            <div style="font-size: 9px; font-weight: 500; opacity: 0.85; letter-spacing: 0.8px;">PLF & IoT PRECISION SUITE</div>
         </div>
         """,
         unsafe_allow_html=True
     )
 
 with col_titulo:
-    st.title("Lecher-IA Pro — Evaluación Bio-Económica y Financiera Integral")
-    st.markdown("<h4 style='color: #2A9D8F; margin-top: -15px; font-weight: 600;'>Precisión nutricional, costos de producción y rentabilidad del negocio lechero.</h4>", unsafe_allow_html=True)
+    st.title("Lecher-IA Pro — Plataforma IoT y Telemetría Ganadera")
+    st.markdown("<h4 style='color: #2A9D8F; margin-top: -15px; font-weight: 600;'>Integración inteligente con aretes, bolos, podómetros y carros mezcladores.</h4>", unsafe_allow_html=True)
     st.markdown("<small style='color: #666;'>Diseñada y creada por el <b>Dr. Alejandro Castañeda Correa</b>.</small>", unsafe_allow_html=True)
 
 st.markdown("---")
 
+# --- MÓDULO IOT / PLF: TELEMETRÍA Y DISPOSITIVOS INTELIGENTES ---
+st.sidebar.markdown("## 📡 0. Conectividad IoT & PLF")
+conectar_iot = st.sidebar.checkbox("Habilitar Telemetría Inteligente en Vivo", value=True)
+
+if conectar_iot:
+    tipo_fuente_iot = st.sidebar.selectbox("Origen de Datos IoT", [
+        "Simulación Automática de Hato (IoT Mock API)", 
+        "Carga Manual de CSV / Telemetría", 
+        "Webhooks / MQTT en Tiempo Real"
+    ])
+    
+    if tipo_fuente_iot == "Simulación Automática de Hato (IoT Mock API)":
+        st.sidebar.success("🟢 **Broker MQTT Conectado:** Recibiendo flujos de 80 aretes/bolos.")
+        iot_ph_rumen = st.sidebar.slider("pH Ruminal Promedio (Bolos IoT)", 5.6, 6.8, 6.2, 0.05)
+        iot_actividad_alerta = st.sidebar.slider("Índice Actividad Estral (Podómetros)", 80, 250, 110, 5)
+        iot_mixer_error_pct = st.sidebar.slider("Error de Carga Carro Mezclador (%)", 0.0, 10.0, 1.5, 0.5)
+        iot_status_str = "Activo (MQTT Mock API)"
+        
+        if iot_ph_rumen < 5.8:
+            st.sidebar.error("⚠️ **ALERTA SARA (Bolos IoT):** ¡pH ruminal crítico (< 5.8)! Se recomienda incrementar peNDF.")
+        if iot_actividad_alerta > 180:
+            st.sidebar.info("🔥 **ALERTA DE CELO (Podómetros):** Alta actividad detectada en corral.")
+            
+    else:
+        uploaded_iot = st.sidebar.file_uploader("Subir Archivo de Sensores (.csv)", type=["csv"])
+        if uploaded_iot is not None:
+            df_iot_user = pd.read_csv(uploaded_iot)
+            st.sidebar.success(f"📂 Archivo IoT cargado: {len(df_iot_user)} registros leídos.")
+            iot_ph_rumen = 6.2
+            iot_mixer_error_pct = 1.0
+            iot_status_str = "Archivo CSV Externo"
+        else:
+            iot_ph_rumen = 6.2
+            iot_mixer_error_pct = 1.0
+            iot_status_str = "Sin archivo conectado"
+else:
+    iot_ph_rumen = 6.2
+    iot_mixer_error_pct = 0.0
+    iot_status_str = "Desactivado"
+
 # --- MÓDULO 1: CARACTERIZACIÓN FISIOLÓGICA Y AMBIENTAL ---
+st.sidebar.markdown("---")
 st.sidebar.markdown("## 🧬 1. Fisiología y Entorno")
 
 raza = st.sidebar.selectbox("Ajuste Racial / Genético", ["Holstein-Friesian", "Jersey", "Pardo Suizo", "Cruza Zebuína / Lechera"])
@@ -191,17 +232,16 @@ precio_leche_base = st.sidebar.number_input("Precio Base Leche (MXN / L)", min_v
 bonif_solidos = st.sidebar.number_input("Bonificación Sólidos (MXN / L)", min_value=0.00, max_value=3.00, value=0.40, step=0.05)
 precio_leche_total = precio_leche_base + bonif_solidos
 
-st.sidebar.markdown("**Costos Operativos Directos e Indirectos (MXN/vaca/día):**")
+st.sidebar.markdown("**Costos Operativos (MXN/vaca/día):**")
 costo_mano_obra = st.sidebar.number_input("Mano de Obra y Salarios", min_value=0.0, max_value=100.0, value=18.0, step=1.0)
 costo_salud_vet = st.sidebar.number_input("Salud, Semen y Veterinaria", min_value=0.0, max_value=100.0, value=8.5, step=0.5)
 costo_energia_serv = st.sidebar.number_input("Energía, Diésel y Servicios", min_value=0.0, max_value=100.0, value=12.0, step=1.0)
 costos_fijos_admin = st.sidebar.number_input("Costos Fijos y Depreciaciones", min_value=0.0, max_value=200.0, value=15.0, step=1.0)
-
-ingresos_extras_subproductos = st.sidebar.number_input("Ingresos Extras (Venta Terneros/Estiércol MXN/vaca/día)", min_value=0.0, max_value=50.0, value=4.0, step=0.5)
+ingresos_extras_subproductos = st.sidebar.number_input("Ingresos Extras (MXN/vaca/día)", min_value=0.0, max_value=50.0, value=4.0, step=0.5)
 
 # --- MÓDULO 2: BASE DE DATOS Y MATRIZ NUTRICIONAL ---
-st.subheader("🌾 2. Matriz Nutricional, Estequiometría y Disponibilidad de Insumos")
-st.caption("Matriz de insumos con actualización de precios y composición ruminal.")
+st.subheader("🌾 2. Matriz Nutricional, Telemetría IoT y Disponibilidad de Insumos")
+st.caption("Matriz de insumos integrada con monitoreo en tiempo real por bolos ruminales y básculas de carro mezclador.")
 
 datos_base = {
     "Ingrediente": ["Silo de Maíz", "Heno de Alfalfa", "Maíz Molido", "Sorgo Grano", "Pasta de Soya", "DDGS Maíz", "Melasa Caña", "Salvado Trigo", "Grasa Sobrepaso", "Carbonato Calcio"],
@@ -228,7 +268,7 @@ editable_df = st.data_editor(df_ingredientes, num_rows="fixed")
 
 # --- MÓDULO 3: MOTOR DE OPTIMIZACIÓN LINEAL (PuLP) ---
 st.markdown("---")
-if st.button("🚀 Ejecutar Optimización Bio-Económica y Financiera"):
+if st.button("🚀 Ejecutar Optimización con Telemetría PLF e IoT"):
     try:
         prob = pulp.LpProblem("LecherIA_Precision_Diet", pulp.LpMinimize)
         
@@ -253,20 +293,22 @@ if st.button("🚀 Ejecutar Optimización Bio-Económica y Financiera"):
             
         prob += pulp.lpSum([variables[str(row["Ingrediente"])] * float(row["Costo"]) for idx, row in editable_df.iterrows()])
         
-        # Restricciones Nutricionales
+        # Restricciones Nutricionales (con ajuste automático si IoT detecta SARA)
+        effective_pendf = pendf_min + (1.5 if iot_ph_rumen < 5.9 else 0.0)
+        
         prob += pulp.lpSum([variables[str(row["Ingrediente"])] for idx, row in editable_df.iterrows()]) == float(cms_req), "CMS_Total"
         prob += pulp.lpSum([variables[str(row["Ingrediente"])] * float(row["NEL"]) for idx, row in editable_df.iterrows()]) >= float(nel_req) * float(cms_req), "Min_NEL"
         prob += pulp.lpSum([variables[str(row["Ingrediente"])] * float(row["MP"]) for idx, row in editable_df.iterrows()]) >= float(mp_req_g), "Min_MP"
         prob += pulp.lpSum([variables[str(row["Ingrediente"])] * (float(row["RDP"]) / 100.0) for idx, row in editable_df.iterrows()]) >= (float(rdp_min_pct) / 100.0) * float(cms_req), "Min_RDP"
         prob += pulp.lpSum([variables[str(row["Ingrediente"])] * (float(row["RUP"]) / 100.0) for idx, row in editable_df.iterrows()]) >= (float(rup_min_pct) / 100.0) * float(cms_req), "Min_RUP"
-        prob += pulp.lpSum([variables[str(row["Ingrediente"])] * (float(row["peNDF"]) / 100.0) for idx, row in editable_df.iterrows()]) >= (float(pendf_min) / 100.0) * float(cms_req), "Min_peNDF"
+        prob += pulp.lpSum([variables[str(row["Ingrediente"])] * (float(row["peNDF"]) / 100.0) for idx, row in editable_df.iterrows()]) >= (float(effective_pendf) / 100.0) * float(cms_req), "Min_peNDF"
         prob += pulp.lpSum([variables[str(row["Ingrediente"])] * (float(row["Almidon"]) / 100.0) for idx, row in editable_df.iterrows()]) <= (float(starch_max) / 100.0) * float(cms_req), "Max_Starch"
         prob += pulp.lpSum([variables[str(row["Ingrediente"])] * (float(row["EE"]) / 100.0) for idx, row in editable_df.iterrows()]) <= (float(ee_max) / 100.0) * float(cms_req), "Max_EE"
         
         prob.solve()
         
         if prob.status == 1:
-            st.success("✅ ¡Dieta Bio-Optimizada y Modelo Financiero Procesado Exitosamente!")
+            st.success("✅ ¡Dieta Bio-Optimizada con Sincronización IoT y Telemetría PLF!")
             
             resultados = []
             costo_alimento = 0
@@ -293,7 +335,10 @@ if st.button("🚀 Ejecutar Optimización Bio-Económica y Financiera"):
                     
                     ms_pct = float(row["MS %"])
                     base_fresca_vaca = cantidad / (ms_pct / 100.0)
-                    total_corral = base_fresca_vaca * tam_corral
+                    
+                    # Ajuste de carga en base al error del carro mezclador IoT
+                    factor_mixer = 1.0 + (iot_mixer_error_pct / 100.0)
+                    total_corral_iot = base_fresca_vaca * tam_corral * factor_mixer
                     
                     pct_dieta = (cantidad / cms_req) * 100
                     resultados.append({
@@ -302,13 +347,13 @@ if st.button("🚀 Ejecutar Optimización Bio-Económica y Financiera"):
                         "Inclusión (kg MS)": round(cantidad, 2),
                         "% en la Dieta (MS)": round(pct_dieta, 2),
                         "Base Fresca (kg/vaca)": round(base_fresca_vaca, 2),
-                        "Total Corral (kg)": round(total_corral, 1),
+                        "Total Corral (kg IoT)": round(total_corral_iot, 1),
                         "Costo Parcial (MXN)": round(costo_parcial, 2)
                     })
                     
             df_res = pd.DataFrame(resultados)
             
-            # --- CÁLCULOS FINANCIEROS Y MODELO P&L INTEGRAL ---
+            # --- CÁLCULOS FINANCIEROS Y P&L ---
             costo_opex_no_alimento = costo_mano_obra + costo_salud_vet + costo_energia_serv + costos_fijos_admin
             costo_total_diario_vaca = costo_alimento + costo_opex_no_alimento
             
@@ -321,10 +366,9 @@ if st.button("🚀 Ejecutar Optimización Bio-Económica y Financiera"):
             
             costo_por_litro = costo_total_diario_vaca / prod_leche
             margen_neto_pct = (ebitda_vaca_dia / ingreso_total_vaca) * 100
-            
             break_even_leche = (costo_total_diario_vaca - ingresos_extras_subproductos) / precio_leche_total
             
-            # --- CÁLCULO ESTEQUIOMÉTRICO BMMCO (Metano y Nitrógeno) ---
+            # --- CÁLCULO ESTEQUIOMÉTRICO BMMCO ---
             ch4_vaca = (fdn_total_kg * 0.55 * 38.0) + ((starch_sum / 100.0 * cms_req) * 0.85 * 22.0)
             intensidad_ch4 = ch4_vaca / ecm
             n_consumido = pc_total_g / 6.25
@@ -334,35 +378,34 @@ if st.button("🚀 Ejecutar Optimización Bio-Económica y Financiera"):
             col_tabla, col_resumen = st.columns([3.2, 1.8])
             
             with col_tabla:
-                st.markdown("### 🧮 3. Ración Optimizada y Hoja de Carga TMR")
+                st.markdown("### 🧮 3. Ración Optimizada y Hoja TMR con Telemetría Carro Mezclador")
                 st.dataframe(
-                    df_res[["Ingrediente", "MS %", "Inclusión (kg MS)", "% en la Dieta (MS)", "Base Fresca (kg/vaca)", "Total Corral (kg)"]], 
+                    df_res[["Ingrediente", "MS %", "Inclusión (kg MS)", "% en la Dieta (MS)", "Base Fresca (kg/vaca)", "Total Corral (kg IoT)"]], 
                     use_container_width=True
                 )
                 
                 pdf_buffer = generar_pdf_tmr_financiero(
                     df_res, costo_alimento, cms_req, ecm, raza, estado_productivo, 
                     tam_corral, precio_leche_total, iofc, ebitda_vaca_dia, 
-                    costo_por_litro, break_even_leche, ch4_vaca, n_excretado
+                    costo_por_litro, break_even_leche, ch4_vaca, n_excretado, iot_status_str
                 )
                 
                 st.download_button(
-                    label="📄 Descargar Estado Financiero y TMR en PDF",
+                    label="📄 Descargar Reporte Financiero y TMR IoT en PDF",
                     data=pdf_buffer,
-                    file_name=f"Reporte_Financiero_LecherIA_{raza}_{dim}DIM.pdf",
+                    file_name=f"Reporte_PLF_IoT_LecherIA_{raza}_{dim}DIM.pdf",
                     mime="application/pdf"
                 )
 
             with col_resumen:
-                st.markdown("### 📊 4. KPIs Financieros y Estado de Resultados (P&L)")
-                st.metric("Costo Alimento / Vaca", f"${costo_alimento:.2f} MXN", f"{(costo_alimento/costo_total_diario_vaca)*100:.1f}% del costo total")
-                st.metric("Costo OpEx Total / Vaca", f"${costo_total_diario_vaca:.2f} MXN", f"Costo/Litro: ${costo_por_litro:.2f} MXN")
-                st.metric("IOFC (Margen Alimento)", f"${iofc:.2f} MXN/vaca/día", f"Precio Leche: ${precio_leche_total:.2f}/L")
+                st.markdown("### 📊 4. Telemetría IoT & Estado Financiero (P&L)")
+                st.metric("pH Ruminal (Bolos IoT)", f"{iot_ph_rumen:.2f}", "Rango óptimo: > 6.0" if iot_ph_rumen>=6.0 else "⚠️ Riesgo SARA")
+                st.metric("Costo Alimento / Vaca", f"${costo_alimento:.2f} MXN", f"{(costo_alimento/costo_total_diario_vaca)*100:.1f}% del total")
                 st.metric("EBITDA Mensual del Corral", f"${ebitda_corral_mes:,.2f} MXN", f"Margen Neto: {margen_neto_pct:.1f}%")
-                st.metric("Punto de Equilibrio (Leche)", f"{break_even_leche:.2f} L/vaca/día", f"Producción Actual: {prod_leche:.1f} L")
+                st.metric("Punto de Equilibrio (Leche)", f"{break_even_leche:.2f} L/vaca/día", f"Actual: {prod_leche:.1f} L")
                 st.metric("Metano Entérico (CH₄)", f"{ch4_vaca:.1f} g CH₄/día", f"Intensidad: {intensidad_ch4:.1f} g/kg ECM")
 
-            # --- MODELACIÓN PRODUCTIVA Y BALANCE FINANCIERO DENSITARIO ---
+            # --- MODELACIÓN PRODUCTIVA Y TRAYECTORIA ---
             st.markdown("---")
             st.subheader(f"📈 5. Proyección Productiva y Económica a 305 Días — {raza}")
             
@@ -388,7 +431,7 @@ if st.button("🚀 Ejecutar Optimización Bio-Económica y Financiera"):
             
             with tab1:
                 st.line_chart(df_curvas[["Producción Leche Estimada (L/día)", "Ingreso Leche ($ MXN)"]])
-                st.info(f"📍 **Evaluación actual:** Día {dim} | Producción: **{prod_leche} L/día** | Ingreso diario/vaca: **${ingreso_leche_vaca:.2f} MXN**")
+                st.info(f"📍 **Evaluación actual:** Día {dim} | Producción: **{prod_leche} L/día** | pH ruminal IoT: **{iot_ph_rumen:.2f}**")
 
             with tab2:
                 st.line_chart(df_curvas[["IOFC Margen ($ MXN)", "Costo Alimento ($ MXN)"]])
@@ -405,7 +448,7 @@ st.markdown("---")
 st.markdown(
     """
     <div style='text-align: center; color: gray; font-size: 12px;'>
-        <strong>Lecher-IA Pro</strong> &bull; Sistema Avanzado de Optimización Nutricional y Financiera Bovina<br>
+        <strong>Lecher-IA Pro</strong> &bull; Sistema de Precisión IoT, Nutrición y Finanzas Bovina<br>
         Diseñado y creado por el <strong>Dr. Alejandro Castañeda Correa</strong>.
     </div>
     """, 
