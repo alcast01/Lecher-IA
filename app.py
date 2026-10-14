@@ -50,7 +50,6 @@ estado_productivo = st.sidebar.selectbox("Estado Fisiológico / Productivo", [
     "Lactación Tardía (201-305 DIM)"
 ])
 
-# Rango DIM automático según el estado seleccionado
 if "Temprana" in estado_productivo:
     dim = st.sidebar.slider("Días en Leche (DIM)", 5, 60, 30, 1)
 elif "Media" in estado_productivo:
@@ -58,7 +57,6 @@ elif "Media" in estado_productivo:
 else:
     dim = st.sidebar.slider("Días en Leche (DIM)", 201, 305, 250, 5)
 
-# Peso y Condición Corporal con valores predeterminados según raza
 peso_def = 650 if raza == "Holstein-Friesian" else 450
 peso_vivo = st.sidebar.slider("Peso Vivo (kg)", 350, 850, peso_def, 10)
 bcs = st.sidebar.slider("Condición Corporal (BCS 1-5)", 2.25, 4.0, 3.0, 0.25)
@@ -72,18 +70,16 @@ st.sidebar.markdown("### 🥛 Metas de Producción y Leche")
 prod_def = 35.0 if raza == "Holstein-Friesian" else 24.0
 prod_leche = st.sidebar.slider("Leche Total Actual (kg/día)", 10.0, 60.0, prod_def, 0.5)
 
-# Ajuste porcentual de grasa y proteína según raza estándar NASEM
 grasa_def = 3.7 if raza == "Holstein-Friesian" else 4.8
 proteina_def = 3.2 if raza == "Holstein-Friesian" else 3.8
 
 pct_grasa = st.sidebar.slider("Grasa en Leche (%)", 2.8, 6.0, grasa_def, 0.1)
 pct_proteina = st.sidebar.slider("Proteína Verd. en Leche (%)", 2.6, 4.5, proteina_def, 0.1)
 
-# --- AJUSTES MATEMÁTICOS NASEM POR RAZA Y CLIMA ---
+# --- CÁLCULOS NASEM CALIBRADOS ---
 coef_mantenimiento = 0.080 if raza == "Holstein-Friesian" else 0.092
 nel_mantenimiento = coef_mantenimiento * (peso_vivo ** 0.75)
 
-# Factor de estrés térmico por temperatura ambiental (°C)
 factor_estres_cms = 1.0
 factor_estres_energetico = 1.0
 if temp_amb > 25:
@@ -91,11 +87,9 @@ if temp_amb > 25:
     factor_estres_cms = max(0.80, 1.0 - (grados_estres * 0.015))
     factor_estres_energetico = 1.0 + (grados_estres * 0.007)
 
-# Cálculos Metabólicos NASEM (2021)
 fcm_35 = (0.4324 * prod_leche) + (16.216 * (prod_leche * (pct_grasa / 100.0)))
 ecm = (0.327 * prod_leche) + (12.95 * (prod_leche * (pct_grasa / 100.0))) + (7.2 * (prod_leche * (pct_proteina / 100.0)))
 
-# Estimación Dinámica del Consumo de Materia Seca (CMS) con protección de rango
 factor_raza_cms = 1.0 if raza == "Holstein-Friesian" else 0.82
 cms_base_nasem = ((0.022 * peso_vivo) + (0.38 * fcm_35)) * factor_raza_cms
 factor_dim_curva = 1 - np.exp(-0.04 * dim) if dim < 50 else 1.0
@@ -106,13 +100,11 @@ st.sidebar.markdown("---")
 st.sidebar.markdown("### ⚙️ Requerimientos Nutricionales Estimados")
 cms_req = st.sidebar.number_input("CMS Objetivo (kg MS/día)", min_value=5.0, max_value=35.0, value=cms_estimado_nasem, step=0.5)
 
-# Densidad energética ajustada por estrés térmico
-nel_req_base = 1.45 + (ecm * 0.012)
-nel_req = st.sidebar.slider("Energía Neta Lactancia (NEL Mcal/kg MS)", 1.45, 1.95, round(nel_req_base * factor_estres_energetico, 2), 0.01)
+# Densidad energética estándar calibrada para evitar conflictos de factibilidad
+nel_req = st.sidebar.slider("Energía Neta Lactancia (NEL Mcal/kg MS)", 1.50, 1.85, 1.68, 0.01)
 
-# Cálculo seguro de Proteína Metabolizable
-mp_calc = int(ecm * 75 + (nel_mantenimiento * 100))
-mp_seguro = max(1000, min(mp_calc, 4500))
+mp_calc = int(ecm * 70 + (nel_mantenimiento * 90))
+mp_seguro = max(1000, min(mp_calc, 4200))
 
 mp_req_g = st.sidebar.number_input(
     "Proteína Metabolizable (PM g/día)", 
@@ -122,20 +114,19 @@ mp_req_g = st.sidebar.number_input(
     step=50
 )
 
-# Calibración robusta de RDP y RUP para evitar infeasibilidad
 rdp_min_pct = st.sidebar.slider("Proteína Degradable Rumen (RDP % en MS)", 6.0, 12.0, 9.0, 0.2)
 rup_min_pct = st.sidebar.slider("Proteína Sobrepasante (RUP % en MS)", 3.0, 8.0, 4.5, 0.2)
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 🛡️ Restricciones Ruminales y Minerales")
-pendf_min = st.sidebar.slider("peNDF Mínima (% en MS)", 14.0, 26.0, 18.0, 0.5)
-starch_max = st.sidebar.slider("Almidón Máximo (% MS - Prev. SARA)", 18.0, 32.0, 26.0, 0.5)
+pendf_min = st.sidebar.slider("peNDF Mínima (% en MS)", 14.0, 24.0, 18.0, 0.5)
+starch_max = st.sidebar.slider("Almidón Máximo (% MS - Prev. SARA)", 20.0, 32.0, 27.0, 0.5)
 ee_max = st.sidebar.slider("Grasa Total / EE Máxima (% MS)", 3.5, 7.0, 6.0, 0.5)
 ca_min = st.sidebar.slider("Calcio Mínimo (Ca % MS)", 0.45, 1.00, 0.65, 0.05)
 p_min = st.sidebar.slider("Fósforo Mínimo (P % MS)", 0.25, 0.55, 0.35, 0.02)
 
 if temp_amb > 28:
-    st.sidebar.error(f"⚠️ **Alerta de Estrés Térmico ({temp_amb}°C):** Se aplicó corrección por depresión de consumo y mayor requerimiento energético.")
+    st.sidebar.error(f"⚠️ **Alerta de Estrés Térmico ({temp_amb}°C):** Se aplicó corrección por depresión de consumo.")
 
 st.markdown(f"""
 > **Resumen del Perfil Fisiológico ({raza} | {estado_productivo}):**  
@@ -158,7 +149,7 @@ datos_base = {
     "Ca": [0.25, 1.40, 0.03, 0.04, 0.35, 0.15, 0.90, 0.12, 0.00, 38.0],
     "P": [0.20, 0.25, 0.28, 0.29, 0.65, 0.75, 0.10, 0.95, 0.00, 0.02],
     "Min_Inclusion": [3.0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-    "Max_Inclusion": [22.0, 15.0, 12.0, 10.0, 10.0, 6.0, 3.0, 5.0, 1.2, 0.5]
+    "Max_Inclusion": [25.0, 16.0, 15.0, 12.0, 12.0, 8.0, 4.0, 6.0, 1.5, 0.8]
 }
 
 df_ingredientes = pd.DataFrame(datos_base)
@@ -299,12 +290,12 @@ if st.button("🚀 Ejecutar Optimización Avanzada de Dietas"):
                     st.success("✅ **Fase de Balance Energético Positivo:** El consumo de materia seca satisface los requerimientos para producción y recuperación de condición corporal.")
 
         else:
-            st.error("⚠️ **No se encontró solución factible.**")
+            st.error("⚠️ **No se encontró solución factible con los parámetros actuales.**")
             st.info("""
-            **Diagnóstico y sugerencias para corregir la infeasibilidad:**
-            1. **Disponibilidad:** Asegúrate de tener al menos un forraje principal (Silo de Maíz o Heno de Alfalfa) y una fuente proteica (Pasta de Soya) marcados como **Disponibles**.
-            2. **Límites de Inclusión:** Amplía ligeramente los porcentajes máximos de inclusión en la tabla de ingredientes si exiges metas nutricionales muy altas.
-            3. **Requerimientos:** Relaja un poco los requerimientos extremos en la barra lateral (como un exceso de Proteína Metabolizable o RUP) si la producción configurada es muy elevada frente a los ingredientes disponibles.
+            **Sugerencias rápidas para solucionar la infeasibilidad:**
+            1. **Verifica la disponibilidad:** Asegúrate de tener seleccionados al menos un forraje (Silo o Alfalfa) y una fuente de proteína (Pasta de Soya).
+            2. **Ajusta rangos en la tabla:** Amplía ligeramente el porcentaje máximo (`Max_Inclusion`) de los ingredientes clave.
+            3. **Revisa requerimientos:** Si la leche configurada es muy alta (>45 kg), incrementa el CMS objetivo o relaja ligeramente los mínimos de proteína en la barra lateral.
             """)
             
     except Exception as e:
