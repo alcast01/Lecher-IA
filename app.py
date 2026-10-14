@@ -40,33 +40,78 @@ with col_titulo:
 
 st.markdown("---")
 
-# --- 3. BARRA LATERAL: PARÁMETROS FISIOLÓGICOS Y NUTRACÉUTICOS ---
-st.sidebar.markdown("### 🧬 Parámetros Fisiológicos (NASEM)")
-paridad = st.sidebar.selectbox("Paridad", ["Multípara (2+ lactancias)", "Primípara (1er parto)"])
-dim = st.sidebar.slider("Días en Leche (DIM)", 5, 305, 90, 5)
-peso_vivo = st.sidebar.slider("Peso Vivo (kg)", 450, 800, 650, 10)
+# --- 3. BARRA LATERAL: PARÁMETROS FISIOLÓGICOS, RAZA Y CLIMA (NASEM) ---
+st.sidebar.markdown("### 🧬 Genética y Fisiología del Animal")
+raza = st.sidebar.selectbox("Raza Bovina", ["Holstein-Friesian", "Jersey"])
+paridad = st.sidebar.selectbox("Número de Lactancia (Paridad)", ["Multípara (2+ lactancias)", "Primípara (1er parto)"])
+estado_productivo = st.sidebar.selectbox("Estado Fisiológico / Productivo", [
+    "Lactación Temprana (1-60 DIM)", 
+    "Lactación Media (61-200 DIM)", 
+    "Lactación Tardía (201-305 DIM)"
+])
+
+# Rango DIM automático según el estado seleccionado
+if "Temprana" in estado_productivo:
+    dim = st.sidebar.slider("Días en Leche (DIM)", 5, 60, 30, 1)
+elif "Media" in estado_productivo:
+    dim = st.sidebar.slider("Días en Leche (DIM)", 61, 200, 120, 5)
+else:
+    dim = st.sidebar.slider("Días en Leche (DIM)", 201, 305, 250, 5)
+
+# Peso y Condición Corporal con valores predeterminados según raza
+peso_def = 650 if raza == "Holstein-Friesian" else 450
+peso_vivo = st.sidebar.slider("Peso Vivo (kg)", 350, 850, peso_def, 10)
 bcs = st.sidebar.slider("Condición Corporal (BCS 1-5)", 2.25, 4.0, 3.0, 0.25)
 
 st.sidebar.markdown("---")
+st.sidebar.markdown("### 🌡️ Clima y Entorno")
+temp_amb = st.sidebar.slider("Temperatura Ambiental (°C)", -10, 42, 22, 1)
+
+st.sidebar.markdown("---")
 st.sidebar.markdown("### 🥛 Metas de Producción y Leche")
-prod_leche = st.sidebar.slider("Leche Total Actual (kg/día)", 15.0, 60.0, 35.0, 0.5)
-pct_grasa = st.sidebar.slider("Grasa en Leche (%)", 2.8, 5.0, 3.7, 0.1)
-pct_proteina = st.sidebar.slider("Proteína Verd. en Leche (%)", 2.6, 4.0, 3.2, 0.1)
+prod_def = 35.0 if raza == "Holstein-Friesian" else 24.0
+prod_leche = st.sidebar.slider("Leche Total Actual (kg/día)", 10.0, 60.0, prod_def, 0.5)
+
+# Ajuste porcentual de grasa y proteína según raza estándar NASEM
+grasa_def = 3.7 if raza == "Holstein-Friesian" else 4.8
+proteina_def = 3.2 if raza == "Holstein-Friesian" else 3.8
+
+pct_grasa = st.sidebar.slider("Grasa en Leche (%)", 2.8, 6.0, grasa_def, 0.1)
+pct_proteina = st.sidebar.slider("Proteína Verd. en Leche (%)", 2.6, 4.5, proteina_def, 0.1)
+
+# --- AJUSTES MATEMÁTICOS NASEM POR RAZA Y CLIMA ---
+# Coeficiente de mantenimiento energético (Mcal NEL / kg BW^0.75): Jersey requiere ~15% más por unidad metabólica
+coef_mantenimiento = 0.080 if raza == "Holstein-Friesian" else 0.092
+nel_mantenimiento = coef_mantenimiento * (peso_vivo ** 0.75)
+
+# Factor de estrés térmico por temperatura ambiental (°C)
+# Si T > 25°C, hay depresión de consumo (CMS) y aumento de costo energético por termorregulación
+factor_estres_cms = 1.0
+factor_estres_energetico = 1.0
+if temp_amb > 25:
+    grados_estres = temp_amb - 25
+    factor_estres_cms = max(0.80, 1.0 - (grados_estres * 0.015)) # Depresión de hasta 20% en calor extremo
+    factor_estres_energetico = 1.0 + (grados_estres * 0.007)      # Incremento de requerimiento por frecuencia respiratoria
 
 # Cálculos Metabólicos NASEM (2021)
 fcm_35 = (0.4324 * prod_leche) + (16.216 * (prod_leche * (pct_grasa / 100.0)))
 ecm = (0.327 * prod_leche) + (12.95 * (prod_leche * (pct_grasa / 100.0))) + (7.2 * (prod_leche * (pct_proteina / 100.0)))
 
-# Estimación Dinámica del Consumo de Materia Seca (CMS)
-cms_base_nasem = (0.022 * peso_vivo) + (0.38 * fcm_35)
-factor_dim = 1 - np.exp(-0.04 * dim) if dim < 50 else 1.0
-cms_estimado_nasem = round(cms_base_nasem * factor_dim, 2)
+# Estimación Dinámica del Consumo de Materia Seca (CMS) ajustada por Raza y Estrés Térmico
+factor_raza_cms = 1.0 if raza == "Holstein-Friesian" else 0.82 # Jersey consume menor volumen relativo pero mayor densidad
+cms_base_nasem = ((0.022 * peso_vivo) + (0.38 * fcm_35)) * factor_raza_cms
+factor_dim_curva = 1 - np.exp(-0.04 * dim) if dim < 50 else 1.0
+cms_estimado_nasem = round(cms_base_nasem * factor_dim_curva * factor_estres_cms, 2)
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("### ⚙️ Requerimientos Nutricionales Estimados")
-cms_req = st.sidebar.number_input("CMS Objetivo (kg MS/día)", min_value=12.0, max_value=35.0, value=cms_estimado_nasem, step=0.5)
-nel_req = st.sidebar.slider("Energía Neta Lactancia (NEL Mcal/kg MS)", 1.45, 1.85, 1.68, 0.01)
-mp_req_g = st.sidebar.number_input("Proteína Metabolizable (PM g/día)", min_value=1200, max_value=3500, value=int(ecm * 72 + 500), step=50)
+cms_req = st.sidebar.number_input("CMS Objetivo (kg MS/día)", min_value=8.0, max_value=35.0, value=cms_estimado_nasem, step=0.5)
+
+# Densidad energética ajustada por estrés térmico
+nel_req_base = 1.45 + (ecm * 0.012)
+nel_req = st.sidebar.slider("Energía Neta Lactancia (NEL Mcal/kg MS)", 1.45, 1.95, round(nel_req_base * factor_estres_energetico, 2), 0.01)
+
+mp_req_g = st.sidebar.number_input("Proteína Metabolizable (PM g/día)", min_value=1000, max_value=3500, value=int(ecm * 75 + (nel_mantenimiento * 100)), step=50)
 
 rdp_min_pct = st.sidebar.slider("Proteína Degradable Rumen (RDP % en MS)", 8.0, 13.0, 10.0, 0.2)
 rup_min_pct = st.sidebar.slider("Proteína Sobrepasante (RUP % en MS)", 4.0, 9.0, 6.0, 0.2)
@@ -74,14 +119,18 @@ rup_min_pct = st.sidebar.slider("Proteína Sobrepasante (RUP % en MS)", 4.0, 9.0
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 🛡️ Restricciones Ruminales y Minerales")
 pendf_min = st.sidebar.slider("peNDF Mínima (% en MS)", 16.0, 26.0, 20.0, 0.5)
-starch_max = st.sidebar.slider("Almidón Máximo (% MS - Prev. SARA)", 18.0, 32.0, 25.0, 0.5)
+starch_max = st.sidebar.slider("Almidón Máximo (% MS - Prev. SARA)", 18.0, 32.0, 24.0, 0.5)
 ee_max = st.sidebar.slider("Grasa Total / EE Máxima (% MS)", 3.5, 7.0, 5.5, 0.5)
 ca_min = st.sidebar.slider("Calcio Mínimo (Ca % MS)", 0.50, 1.00, 0.70, 0.05)
 p_min = st.sidebar.slider("Fósforo Mínimo (P % MS)", 0.30, 0.55, 0.38, 0.02)
 
+# Alerta de Estrés Térmico en Interfaz
+if temp_amb > 28:
+    st.sidebar.error(f"⚠️ **Alerta de Estrés Térmico ({temp_amb}°C):** Se aplicó corrección por depresión de consumo y mayor requerimiento energético.")
+
 st.markdown(f"""
-> **Resumen del Perfil Fisiológico:**  
-> **ECM (Leche Corregida):** `{ecm:.2f} kg/día` &bull; **CMS Estimado NASEM:** `{cms_estimado_nasem} kg MS/día` &bull; **Densidad Energética:** `{nel_req} Mcal/kg MS`
+> **Resumen del Perfil Fisiológico ({raza} | {estado_productivo}):**  
+> **ECM (Leche Corregida):** `{ecm:.2f} kg/día` &bull; **CMS Estimado NASEM:** `{cms_estimado_nasem} kg MS/día` &bull; **NEL Objetivo:** `{nel_req} Mcal/kg MS`
 """)
 
 # --- 4. BASE DE DATOS EXTENDIDA CON COLUMNA "Disponible" ---
@@ -119,7 +168,6 @@ if st.button("🚀 Ejecutar Optimización Avanzada de Dietas"):
             ing = str(row["Ingrediente"])
             is_available = bool(row["Disponible"])
             
-            # Si el ingrediente NO está disponible, fijamos sus límites a 0 obligatoriamente
             if is_available:
                 min_inc = float(row["Min_Inclusion"])
                 max_inc = float(row["Max_Inclusion"])
@@ -129,8 +177,9 @@ if st.button("🚀 Ejecutar Optimización Avanzada de Dietas"):
                 
             variables[ing] = pulp.LpVariable(
                 f"x_{ing.replace(' ', '_')}", 
-                lowBound=min_inc, 
-                upBound=max_inc
+                min_inc, 
+                max_inc,
+                pulp.LpContinuous
             )
             
         # Función Objetivo: Minimizar Costo Total Diario
@@ -153,7 +202,7 @@ if st.button("🚀 Ejecutar Optimización Avanzada de Dietas"):
         
         # Estado de la solución
         if prob.status == 1:
-            st.success("✅ ¡Dieta optimizada exitosamente considerando los ingredientes disponibles en tu inventario!")
+            st.success("✅ ¡Dieta optimizada exitosamente considerando los parámetros raciales, ambientales y de inventario!")
             
             resultados = []
             costo_total = 0
@@ -204,17 +253,17 @@ if st.button("🚀 Ejecutar Optimización Avanzada de Dietas"):
 
             # --- 6. MODELACIÓN Y GRÁFICAS DE PREDICCIÓN PRODUCTIVA ---
             st.markdown("---")
-            st.subheader("📈 Predicción del Comportamiento Productivo y Balance Energético (Modelo de Wood)")
+            st.subheader(f"📈 Predicción del Comportamiento Productivo — {raza} ({estado_productivo})")
             
             dias_lactancia = np.arange(1, 306)
             a_factor = prod_leche / ((dim ** 0.2) * np.exp(-0.003 * dim))
             produccion_predicha = a_factor * (dias_lactancia ** 0.2) * np.exp(-0.003 * dias_lactancia)
             
-            cms_predicho = ((0.022 * peso_vivo) + (0.38 * ((0.327 * produccion_predicha) + (12.95 * (produccion_predicha * (pct_grasa / 100.0)))))) * (1 - np.exp(-0.04 * dias_lactancia))
+            cms_predicho = ((0.022 * peso_vivo) + (0.38 * ((0.327 * produccion_predicha) + (12.95 * (produccion_predicha * (pct_grasa / 100.0)))))) * factor_raza_cms * (1 - np.exp(-0.04 * dias_lactancia)) * factor_estres_cms
             
             nel_aportada = cms_predicho * (nel_sum / cms_req)
-            nel_mantenimiento = 0.08 * (peso_vivo ** 0.75)
-            nel_requerida_total = nel_mantenimiento + (0.70 * produccion_predicha)
+            nel_mantenimiento_dinamico = coef_mantenimiento * (peso_vivo ** 0.75) * factor_estres_energetico
+            nel_requerida_total = nel_mantenimiento_dinamico + (0.70 * produccion_predicha)
             
             df_curvas = pd.DataFrame({
                 "Día de Lactancia": dias_lactancia,
@@ -236,12 +285,12 @@ if st.button("🚀 Ejecutar Optimización Avanzada de Dietas"):
                 st.line_chart(df_curvas[["Energía Aportada (Mcal NEL)", "Energía Requerida Total (Mcal NEL)"]])
                 
                 if dim < 60:
-                    st.warning("⚠️ **Atención (Lactancia Temprana):** La vaca se encuentra en fase de Balance Energético Negativo (BEN). Movilizará reservas corporales de grasa para sostener el pico de lactancia.")
+                    st.warning("⚠️ **Atención (Lactancia Temprana / Transición):** La vaca se encuentra en fase de Balance Energético Negativo (BEN). Movilizará reservas corporales de grasa para sostener el pico de lactancia.")
                 else:
                     st.success("✅ **Fase de Balance Energético Positivo:** El consumo de materia seca satisface los requerimientos para producción y recuperación de condición corporal.")
 
         else:
-            st.warning("⚠️ No se encontró solución factible. Es posible que hayas desactivado ingredientes clave (como forrajes principales) y las restricciones nutricionales no se puedan cumplir. Vuelve a habilitar ingredientes necesarios en la tabla o ajusta los límites.")
+            st.warning("⚠️ No se encontró solución factible. Es posible que hayas desactivado ingredientes clave y las restricciones nutricionales no se puedan cumplir. Vuelve a habilitar ingredientes necesarios en la tabla o ajusta los límites.")
             
     except Exception as e:
         st.error(f"Ocurrió un error al procesar el modelo matemático: {e}")
