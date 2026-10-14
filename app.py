@@ -9,7 +9,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- ENCABEZADO Y LOGOTIPO CIENTÍFICO ---
+# --- ENCABEZADO, LOGOTIPO Y SLOGAN ---
 col_logo, col_titulo = st.columns([1, 5])
 
 with col_logo:
@@ -26,7 +26,8 @@ with col_logo:
 
 with col_titulo:
     st.title("LactiDieta Pro — Modelo Lineal Avanzado (JDS / NASEM)")
-    st.markdown("**Sistema de optimización con restricciones metabólicas, proteicas (RDP/RUP), fibra efectiva y límites de almidón.**")
+    st.markdown("**Eslogan:** *Optimizando la precisión ruminal y la rentabilidad lechera a través de la ciencia.*")
+    st.markdown("<small style='color: #555;'>Diseñada y creada por el <b>Dr. Alejandro Castañeda Correa</b>.</small>", unsafe_allow_html=True)
 
 st.markdown("---")
 
@@ -138,4 +139,8 @@ if st.button("🚀 Ejecutar Optimización Avanzada"):
         col4.metric("FDN de Forraje", f"{(forage_fdn_sum/cms_req)*100:.1f}%", f"Mín: {forage_fdn_min}%")
         
     else:
-        st.error("⚠️ No se encontró solución factible. Las restricciones cruzadas (por ejemplo, exigir mucha fibra de forraje con un límite bajo de ingredientes) son estrictas. Intenta ajustar los rangos de inclusión.")
+        st.error("⚠️ No se encontró solución factible. Las restricciones cruzadas son estrictas. Intenta ajustar los rangos de inclusión.")
+
+# Pie de página con créditos institucionales
+st.markdown("---")
+st.markdown("<p style='text-align: center; color: gray; font-size: 12px;'>LactiDieta Pro &bull; Desarrollado por el Dr. Alejandro Castañeda Correa para la Nutrición Bovina Avanzada.</p>", unsafe_allow_html=True)
