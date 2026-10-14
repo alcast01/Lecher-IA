@@ -65,7 +65,7 @@ if "idx_ingrediente_actual" not in st.session_state:
 if "peso_cargado_actual" not in st.session_state:
     st.session_state.peso_cargado_actual = 0.0
 
-# --- BASE DE DATOS INICIAL VACÍA PARA HATO GRANDE (HASTA 3,000 ANIMALES) ---
+# --- BASE DE DATOS INICIAL COMPLETAMENTE VACÍA ---
 if "df_hato" not in st.session_state:
     columnas_hato = [
         "SINIGA", 
@@ -146,15 +146,15 @@ with col_logo:
         ">
             <span style="font-size: 38px; line-height: 1;">🧬🐮</span>
             <div style="font-size: 15px; font-weight: 800; letter-spacing: 1.5px; margin-top: 4px; text-transform: uppercase;">LECHER-IA</div>
-            <div style="font-size: 9px; font-weight: 500; opacity: 0.85; letter-spacing: 0.8px;">LARGE HERD (3,000 HEADS)</div>
+            <div style="font-size: 9px; font-weight: 500; opacity: 0.85; letter-spacing: 0.8px;">HERD REGISTRY (3,000 HEADS)</div>
         </div>
         """,
         unsafe_allow_html=True
     )
 
 with col_titulo:
-    st.title("Lecher-IA Pro — Gestión de Grandes Hatos (Hasta 3,000 Animales)")
-    st.markdown("<h4 style='color: #2A9D8F; margin-top: -15px; font-weight: 600;'>Plataforma global de precisión bionutricional, control de inventario y telemedicina.</h4>", unsafe_allow_html=True)
+    st.title("Lecher-IA Pro — Módulo de Registro e Inventario de Ganado")
+    st.markdown("<h4 style='color: #2A9D8F; margin-top: -15px; font-weight: 600;'>Plataforma global de precisión bionutricional, control de hato y telemedicina.</h4>", unsafe_allow_html=True)
     st.markdown("<small style='color: #666;'>Diseñada y creada por el <b>Dr. Alejandro Castañeda Correa</b>.</small>", unsafe_allow_html=True)
 
 st.markdown("---")
@@ -232,7 +232,7 @@ ee_max = st.sidebar.slider("Grasa Total / EE Máxima (% MS)", 3.5, 7.0, 6.0, 0.5
 
 # --- CUERPO PRINCIPAL ORGANIZADO EN PESTAÑAS ---
 tab_inv, tab_form, tab_mixer_bt, tab_twin, tab_alert, tab_monte, tab_vision, tab_telemed = st.tabs([
-    "🐄 Inventario Hato (3,000 Vacas)",
+    "🐄 Registro & Base de Datos Hato",
     "🌾 Formulación TMR", 
     "🚜 Carro Mezclador Bluetooth BLE",
     "🧬 Gemelo Digital & Metabolómica",
@@ -246,47 +246,73 @@ iot_ph_rumen = 6.18
 iot_rumination_min = 465
 
 with tab_inv:
-    st.subheader("🐄 Inventario General del Establo (Capacidad: 3,000 Animales)")
-    st.caption("La base de datos está completamente limpia. Registra o importa tu hato ordenado por número SINIGA y Arete Interno.")
+    st.subheader("📝 Formulario de Registro Individual de Animales")
+    st.caption("Ingresa los datos del bovino y presiona el botón para guardarlo en la base de datos (capacidad hasta 3,000 animales).")
     
-    # Manejo y ordenamiento dinámico del inventario cargado por el usuario
-    if not st.session_state.df_hato.empty and "SINIGA" in st.session_state.df_hato.columns:
-        df_sorted = st.session_state.df_hato.sort_values(by=["SINIGA", "Arete Interno"]).reset_index(drop=True)
-    else:
-        df_sorted = st.session_state.df_hato
+    # Formulario interactivo para registrar un nuevo animal
+    with st.form("form_nuevo_animal", clear_on_submit=True):
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            siniga_input = st.text_input("Número SINIGA (Oficial)", value="", placeholder="Ej: MX-14-032-1001")
+            arete_input = st.text_input("Arete Interno (Establo)", value="", placeholder="Ej: 101")
+            etapa_input = st.selectbox("Etapa Productiva", [
+                "Vaca en producción",
+                "Vaca seca",
+                "Becerra recién nacida",
+                "Becerra de reemplazo gestante",
+                "Becerra de reemplazo no gestante",
+                "Vaca para inseminar",
+                "Vaca en transición"
+            ])
+        with c2:
+            dim_input = st.number_input("DIM / Edad (días)", min_value=0, max_value=2000, value=30, step=1)
+            gest_input = st.number_input("Días de Gestación", min_value=0, max_value=285, value=0, step=1)
+            prod_input = st.number_input("Producción de Leche (L/día)", min_value=0.0, max_value=80.0, value=0.0, step=0.5)
+        with c3:
+            ph_input = st.number_input("pH Ruminal Sensorizado (IoT)", min_value=5.0, max_value=7.5, value=6.25, step=0.05)
+            rumia_input = st.number_input("Rumia (min/día)", min_value=0, max_value=800, value=480, step=10)
+            salud_input = st.text_input("Estado Salud / Observaciones", value="Óptimo", placeholder="Ej: Fisiológico Normal")
+            
+        btn_guardar = st.form_submit_button("💾 Guardar Animal en la Base de Datos")
         
-    st.markdown("### 📋 Tabla de Registro e Ingreso de Animales")
+        if btn_guardar:
+            if not siniga_input or not arete_input:
+                st.error("⚠️ Es obligatorio ingresar al menos el **Número SINIGA** y el **Arete Interno**.")
+            elif len(st.session_state.df_hato) >= 3000:
+                st.warning("⚠️ Se ha alcanzado la capacidad máxima de 3,000 animales en esta sesión.")
+            else:
+                nuevo_registro = {
+                    "SINIGA": siniga_input,
+                    "Arete Interno": arete_input,
+                    "Etapa Productiva": etapa_input,
+                    "DIM / Edad (días)": dim_input,
+                    "Días Gestación": gest_input,
+                    "Prod. Leche (L)": prod_input,
+                    "pH Ruminal (IoT)": ph_input,
+                    "Rumia (min/día)": rumia_input,
+                    "Estado Salud": salud_input
+                }
+                st.session_state.df_hato = pd.concat([st.session_state.df_hato, pd.DataFrame([nuevo_registro])], ignore_index=True)
+                st.success(f"✅ ¡Animal Arete #{arete_input} (SINIGA: {siniga_input}) guardado con éxito!")
+                st.rerun()
+
+    st.markdown("---")
+    st.subheader("📊 Base de Datos del Hato Registrado")
     
-    # Editor interactivo dinámico con capacidad para miles de filas
-    df_editado = st.data_editor(
-        df_sorted, 
-        num_rows="dynamic", 
-        use_container_width=True,
-        column_config={
-            "Etapa Productiva": st.column_config.SelectboxColumn(
-                "Etapa Productiva",
-                options=[
-                    "Vaca en producción",
-                    "Vaca seca",
-                    "Becerra recién nacida",
-                    "Becerra de reemplazo gestante",
-                    "Becerra de reemplazo no gestante",
-                    "Vaca para inseminar",
-                    "Vaca en transición"
-                ],
-                required=True
-            )
-        }
-    )
-    st.session_state.df_hato = df_editado
-    
-    col_stat1, col_stat2 = st.columns([2, 2])
-    with col_stat1:
-        st.metric("Total de Animales Registrados", f"{len(df_editado)} / 3,000", "Capacidad para Gran Hato")
-    with col_stat2:
-        if not df_editado.empty and "Etapa Productiva" in df_editado.columns:
-            conteo = df_editado["Etapa Productiva"].value_counts().to_dict()
-            st.write("**Distribución Fisiológica del Hato:**", conteo)
+    if not st.session_state.df_hato.empty:
+        df_ordenado = st.session_state.df_hato.sort_values(by=["SINIGA", "Arete Interno"]).reset_index(drop=True)
+        st.dataframe(df_ordenado, use_container_width=True)
+        
+        col_res1, col_res2 = st.columns([2, 2])
+        with col_res1:
+            st.metric("Total de Animales en la Base de Datos", f"{len(df_ordenado)} / 3,000")
+        with col_res2:
+            if st.button("🗑️ Vaciar / Limpiar Base de Datos"):
+                st.session_state.df_hato = pd.DataFrame(columns=columnas_hato)
+                st.success("✅ Base de datos vaciada.")
+                st.rerun()
+    else:
+        st.info("💡 La base de datos está actualmente **vacía**. Utiliza el formulario superior para agregar los animales de tu hato.")
 
 with tab_form:
     st.subheader("🌾 Matriz Nutricional, Insumos & Optimización Lineal PuLP")
