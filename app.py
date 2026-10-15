@@ -20,7 +20,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Estilizado personalizado CSS Enterprise V2.0
+# Estilizado personalizado CSS Enterprise V3.0
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
@@ -37,34 +37,38 @@ st.markdown("""
         text-align: center;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
         color: white;
+        margin-bottom: 25px;
     }
     
-    .pricing-card-v2 {
+    .pricing-card-v3 {
         background: #FFFFFF;
         border: 2px solid #E2E8F0;
         border-radius: 16px;
-        padding: 20px;
+        padding: 24px;
         text-align: center;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+        height: 100%;
     }
     
-    .pricing-card-vip-v2 {
+    .pricing-card-vip-v3 {
         background: linear-gradient(145deg, #054A29 0%, #137547 100%);
         color: white;
-        border: 2px solid #FFD700;
+        border: 3px solid #FFD700;
         border-radius: 16px;
-        padding: 20px;
+        padding: 24px;
         text-align: center;
         box-shadow: 0 10px 25px rgba(5,74,41,0.25);
+        height: 100%;
     }
     
-    .login-box-v2 {
-        background: #F8FAFC;
+    .login-box-v3 {
+        background: #FFFFFF;
         border: 1px solid #E2E8F0;
         border-radius: 20px;
-        padding: 28px;
-        box-shadow: 0 8px 20px rgba(0,0,0,0.04);
+        padding: 32px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.06);
+        max-width: 500px;
+        margin: 0 auto;
     }
     
     .nav-box {
@@ -91,6 +95,9 @@ COLUMNAS_HATO = [
 ]
 
 # --- INICIALIZACIÓN DE ESTADOS DE SESIÓN ---
+if "pantalla_actual" not in st.session_state:
+    st.session_state.pantalla_actual = "planes"  # opciones: "planes", "login", "app"
+
 if "subscribed" not in st.session_state:
     st.session_state.subscribed = False
 if "plan_seleccionado" not in st.session_state:
@@ -119,7 +126,7 @@ if "df_hato" not in st.session_state:
 
 
 # =========================================================================
-# ENCABEZADO Y BRANDING VANGUARDISTA
+# BRANDING E IDENTIDAD VISUAL VANGUARDISTA ENCABEZADO
 # =========================================================================
 st.markdown("""
     <div class='brand-logo-card'>
@@ -134,139 +141,148 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-st.markdown("<br>", unsafe_allow_html=True)
-
 
 # =========================================================================
-# PÁGINA DE INICIO: PLANES DE SUSCRIPCIÓN Y LOGIN TOTALMENTE SEPARADOS
+# PANTALLA 1 EXCLUSIVA: PLANES DE SUSCRIPCIÓN Y LICENCIAMIENTO (INICIO)
 # =========================================================================
-if not st.session_state.subscribed or not st.session_state.two_fa_verified:
+if st.session_state.pantalla_actual == "planes" or not st.session_state.subscribed:
     
-    col_izq_planes, col_der_login = st.columns([1.8, 1.2], gap="large")
+    st.markdown("<h2 style='text-align: center; color: #054A29; font-weight: 800;'>💎 Selecciona tu Plan de Suscripción</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #666;'>Elige la modalidad de licenciamiento ideal para la escala y metas de tu establo lechero.</p>", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
     
-    # -------------------------------------------------------------
-    # COLUMNA IZQUIERDA: PLANES DE SUSCRIPCIÓN (3, 6, 12 MESES)
-    # -------------------------------------------------------------
-    with col_izq_planes:
-        st.markdown("<h3 style='color: #054A29; font-weight: 800;'>💎 1. Elige tu Plan de Suscripción</h3>", unsafe_allow_html=True)
-        st.caption("Selecciona el plan operativo para desbloquear el motor NASEM 2021 y control de hasta 3,000 cabezas.")
-        
-        c_p1, c_p2, c_p3 = st.columns(3)
-        
-        with c_p1:
-            st.markdown("""
-                <div class='pricing-card-v2'>
-                    <h4 style='color: #054A29; margin-bottom: 0;'>Trimestral</h4>
-                    <h2 style='color: #1A202C; margin-top: 5px;'>3 Meses</h2>
-                    <h2 style='color: #137547;'>$1,495 <small style='font-size: 11px;'>MXN/mes</small></h2>
-                    <p style='color: #718096; font-size: 11px;'>Factura: $4,485 MXN</p>
-            """, unsafe_allow_html=True)
-            if st.button("Elegir 3 Meses", key="btn_p3"):
-                st.session_state.subscribed = True
-                st.session_state.plan_seleccionado = "3 Meses"
-                st.success("Plan Trimestral Seleccionado")
-                st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
-
-        with c_p2:
-            st.markdown("""
-                <div class='pricing-card-v2'>
-                    <h4 style='color: #054A29; margin-bottom: 0;'>Semestral</h4>
-                    <h2 style='color: #1A202C; margin-top: 5px;'>6 Meses</h2>
-                    <h2 style='color: #137547;'>$1,195 <small style='font-size: 11px;'>MXN/mes</small></h2>
-                    <p style='color: #718096; font-size: 11px;'>Ahorro del 20%</p>
-            """, unsafe_allow_html=True)
-            if st.button("Elegir 6 Meses", key="btn_p6"):
-                st.session_state.subscribed = True
-                st.session_state.plan_seleccionado = "6 Meses"
-                st.success("Plan Semestral Seleccionado")
-                st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
-
-        with c_p3:
-            st.markdown("""
-                <div class='pricing-card-vip-v2'>
-                    <span style='background: #FFD700; color: #054A29; font-weight: 800; font-size: 9px; padding: 2px 8px; border-radius: 10px;'>MÁS POPULAR</span>
-                    <h4 style='color: #FFFFFF; margin-bottom: 0;'>Anual VIP</h4>
-                    <h2 style='color: #FFD700; margin-top: 5px;'>12 Meses</h2>
-                    <h2 style='color: #FFFFFF;'>$795 <small style='font-size: 11px; color: #FFD700;'>MXN/mes</small></h2>
-                    <p style='color: #FFD700; font-size: 11px; font-weight: 700;'>Ahorra 47% ($9,540 MXN/año)</p>
-            """, unsafe_allow_html=True)
-            if st.button("🌟 Elegir 12 Meses", key="btn_p12"):
-                st.session_state.subscribed = True
-                st.session_state.plan_seleccionado = "12 Meses VIP"
-                st.balloons()
-                st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
-
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.info("💡 **Incentivo de Suscripción Anual:** El 85% de los establos comerciales eligen el **Plan Anual de 12 Meses** para protegerse contra la inflación de materias primas y recibir soporte técnico directo todo el año.")
-
-    # -------------------------------------------------------------
-    # COLUMNA DERECHA: ACCESO DE USUARIO Y CONTRASEÑA / 2FA SEPARADO
-    # -------------------------------------------------------------
-    with col_der_login:
-        st.markdown("<h3 style='color: #054A29; font-weight: 800;'>🔐 2. Iniciar Sesión Segura</h3>", unsafe_allow_html=True)
-        
-        if st.session_state.plan_seleccionado:
-            st.success(f"✓ Plan Activo Seleccionado: **{st.session_state.plan_seleccionado}**")
-        else:
-            st.warning("⚠️ Selecciona un plan en la columna izquierda para activar la cuenta.")
-
-        st.markdown("<div class='login-box-v2'>", unsafe_allow_html=True)
-        
-        if not st.session_state.logged_in:
-            with st.form("form_login_v2"):
-                st.markdown("##### 🔑 Credenciales de Acceso")
-                usuario = st.text_input("Usuario / Correo Electrónico", value="admin")
-                password = st.text_input("Contraseña", type="password", value="lecheria2026")
-                btn_login = st.form_submit_button("Validar Credenciales ➔", use_container_width=True)
-                
-                if btn_login:
-                    if usuario == "admin" and password == "lecheria2026":
-                        st.session_state.logged_in = True
-                        st.success("✅ Credenciales correctas.")
-                        st.rerun()
-                    else:
-                        st.error("❌ Credenciales incorrectas. (Prueba: admin / lecheria2026)")
-        else:
-            st.success("🟢 Usuario Autenticado.")
-            st.markdown("##### 📱 Doble Factor de Autenticación (2FA)")
-            st.caption("Ingresa el token de seguridad enviado a tu dispositivo.")
-            
-            with st.form("form_2fa_v2"):
-                codigo_2fa = st.text_input("Código 2FA (6 dígitos)", max_chars=6, value="2026")
-                btn_2fa = st.form_submit_button("🔒 Ingresar a Lecher-IA Pro ➔", use_container_width=True)
-                
-                if btn_2fa:
-                    if not st.session_state.subscribed:
-                        st.error("⚠️ Por favor selecciona primero un plan de suscripción en el panel izquierdo.")
-                    elif codigo_2fa == "2026":
-                        st.session_state.two_fa_verified = True
-                        st.success("✅ ¡Acceso Concedido!")
-                        st.rerun()
-                    else:
-                        st.error("❌ Código 2FA inválido. Prueba con: 2026")
-                        
+    col_p1, col_p2, col_p3 = st.columns(3)
+    
+    with col_p1:
+        st.markdown("""
+            <div class='pricing-card-v3'>
+                <h3 style='color: #054A29;'>Plan Trimestral</h3>
+                <h1 style='color: #1A202C;'>3 Meses</h1>
+                <h2 style='color: #137547;'>$1,495 <small style='font-size: 13px;'>MXN/mes</small></h2>
+                <p style='color: #718096; font-size: 13px;'>Factura única: $4,485 MXN</p>
+                <hr>
+                <p style='color: #555; font-size: 12px;'>✓ Monitoreo NASEM 2021<br>✓ Hasta 3,000 cabezas<br>✓ Carro Mezclador Bluetooth</p>
+        """, unsafe_allow_html=True)
+        if st.button("Seleccionar Plan 3 Meses ➔", key="btn_p3_solo", use_container_width=True):
+            st.session_state.subscribed = True
+            st.session_state.plan_seleccionado = "3 Meses"
+            st.session_state.pantalla_actual = "login"
+            st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
+    with col_p2:
+        st.markdown("""
+            <div class='pricing-card-v3'>
+                <h3 style='color: #054A29;'>Plan Semestral</h3>
+                <h1 style='color: #1A202C;'>6 Meses</h1>
+                <h2 style='color: #137547;'>$1,195 <small style='font-size: 13px;'>MXN/mes</small></h2>
+                <p style='color: #2A9D8F; font-size: 13px; font-weight: 700;'>¡Ahorras 20% de descuento!</p>
+                <hr>
+                <p style='color: #555; font-size: 12px;'>✓ Todo lo del plan Trimestral<br>✓ Soporte estacional TMR<br>✓ Ajustes por estrés térmico</p>
+        """, unsafe_allow_html=True)
+        if st.button("Seleccionar Plan 6 Meses ➔", key="btn_p6_solo", use_container_width=True):
+            st.session_state.subscribed = True
+            st.session_state.plan_seleccionado = "6 Meses"
+            st.session_state.pantalla_actual = "login"
+            st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    with col_p3:
+        st.markdown("""
+            <div class='pricing-card-vip-v3'>
+                <span style='background: #FFD700; color: #054A29; font-weight: 800; font-size: 10px; padding: 4px 12px; border-radius: 12px;'>🔥 RECOMENDADO & AHORRO MÁXIMO</span>
+                <h3 style='color: #FFFFFF; margin-top: 10px;'>Plan Anual VIP</h3>
+                <h1 style='color: #FFD700;'>12 Meses</h1>
+                <h2 style='color: #FFFFFF;'>$795 <small style='font-size: 13px; color: #FFD700;'>MXN/mes</small></h2>
+                <p style='color: #FFD700; font-size: 13px; font-weight: 700;'>¡Ahorras 47% ($9,540 MXN anuales)!</p>
+                <hr style='border-color: rgba(255,255,255,0.2);'>
+                <p style='color: #E0E0E0; font-size: 12px;'>✓ Todo lo del plan Semestral<br>✓ Consultoría con el Dr. Castañeda<br>✓ Congelación de precio por 3 años</p>
+        """, unsafe_allow_html=True)
+        if st.button("🌟 SUSCRIBIRME 12 MESES VIP ➔", key="btn_p12_solo", use_container_width=True):
+            st.session_state.subscribed = True
+            st.session_state.plan_seleccionado = "12 Meses VIP"
+            st.session_state.pantalla_actual = "login"
+            st.balloons()
+            st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.info("💡 **Incentivo Estratégico:** El 85% de los productores eligen el **Plan Anual de 12 Meses** para proteger la rentabilidad de su hato ante la volatilidad de los precios de forrajes y granos.")
     st.stop()
 
 
 # =========================================================================
-# APLICACIÓN PRINCIPAL (ACCESO CONCEDIDO LUEGO DE SUSCRIPCIÓN + LOGIN + 2FA)
+# PANTALLA 2 EXCLUSIVA: INICIO DE SESIÓN SEGURO Y 2FA (INDEPENDIENTE)
+# =========================================================================
+if st.session_state.pantalla_actual == "login" and not st.session_state.two_fa_verified:
+    
+    col_nav1, col_nav2 = st.columns([1, 4])
+    with col_nav1:
+        if st.button("⬅️ Cambiar Plan"):
+            st.session_state.pantalla_actual = "planes"
+            st.session_state.subscribed = False
+            st.rerun()
+            
+    with col_nav2:
+        st.success(f"✓ Plan de Suscripción Activo: **{st.session_state.plan_seleccionado}**")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    st.markdown("<div class='login-box-v3'>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center; color: #054A29; font-weight: 800;'>🔐 Inicio de Sesión Seguro</h3>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #666; font-size: 13px;'>Acceso protegido con cifrado y verificación de Doble Factor (2FA)</p>", unsafe_allow_html=True)
+    st.markdown("<hr>", unsafe_allow_html=True)
+    
+    if not st.session_state.logged_in:
+        with st.form("form_login_exclusivo"):
+            usuario = st.text_input("Usuario / Correo Electrónico", value="admin")
+            password = st.text_input("Contraseña", type="password", value="lecheria2026")
+            btn_login = st.form_submit_button("Siguiente: Validar 2FA ➔", use_container_width=True)
+            
+            if btn_login:
+                if usuario == "admin" and password == "lecheria2026":
+                    st.session_state.logged_in = True
+                    st.success("✅ Credenciales correctas.")
+                    st.rerun()
+                else:
+                    st.error("❌ Credenciales incorrectas. (Prueba: admin / lecheria2026)")
+    else:
+        st.success("🟢 Credenciales verificadas exitosamente.")
+        st.markdown("##### 📱 Verificación de Doble Factor (2FA)")
+        st.caption("Ingresa el código temporal enviado a tu autenticador móvil.")
+        
+        with st.form("form_2fa_exclusivo"):
+            codigo_2fa = st.text_input("Código 2FA (6 dígitos)", max_chars=6, value="2026")
+            btn_2fa = st.form_submit_button("🔒 Confirmar e Ingresar a la App ➔", use_container_width=True)
+            
+            if btn_2fa:
+                if codigo_2fa == "2026":
+                    st.session_state.two_fa_verified = True
+                    st.session_state.pantalla_actual = "app"
+                    st.success("✅ ¡Acceso Autorizado!")
+                    st.rerun()
+                else:
+                    st.error("❌ Código 2FA incorrecto. Prueba con: 2026")
+                    
+    st.markdown("</div>", unsafe_allow_html=True)
+    st.stop()
+
+
+# =========================================================================
+# PANTALLA 3 EXCLUSIVA: APLICACIÓN PRINCIPAL (DESBLOQUEADA TRAS SUBS + LOGIN)
 # =========================================================================
 
 st.markdown(f"""
     <div class='nav-box'>
         <h4 style='margin:0; color: #054A29;'>🚀 Sesión Enterprise Activa</h4>
-        <p style='margin:0; color: #555;'>Plan Suscrito: <b>{st.session_state.plan_seleccionado}</b> &bull; Capacidad: <b>3,000 Cabezas de Ganado</b></p>
+        <p style='margin:0; color: #555;'>Plan Licenciado: <b>{st.session_state.plan_seleccionado}</b> &bull; Capacidad Base de Datos: <b>3,000 Cabezas</b></p>
     </div>
 """, unsafe_allow_html=True)
 
 col_top1, col_top2 = st.columns([4, 1])
 with col_top2:
-    if st.button("🔄 Cerrar Sesión / Cambiar Plan"):
+    if st.button("🔄 Cerrar Sesión / Salir"):
+        st.session_state.pantalla_actual = "planes"
         st.session_state.subscribed = False
         st.session_state.logged_in = False
         st.session_state.two_fa_verified = False
