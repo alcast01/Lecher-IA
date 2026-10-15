@@ -13,45 +13,60 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 
-# --- 1. CONFIGURACIÓN DE PÁGINA & ESTILOS AVANZADOS ---
+# --- 1. CONFIGURACIÓN DE PÁGINA & ESTILOS AVANZADOS VANGUARDISTAS ---
 st.set_page_config(
-    page_title="Lecher-IA Pro | User-Friendly PLF Suite",
+    page_title="Lecher-IA Pro | Enterprise Precision Bionutrition",
     page_icon="🧬",
     layout="wide"
 )
 
-# Estilizado personalizado CSS
+# Estilizado personalizado CSS Enterprise V2.0
 st.markdown("""
 <style>
-    .main-header {
-        font-family: 'Helvetica Neue', sans-serif;
-        font-weight: 800;
-        color: #054A29;
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
+    
+    html, body, [class*="css"] {
+        font-family: 'Plus Jakarta Sans', sans-serif;
     }
-    .metric-card {
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-        border-radius: 12px;
-        padding: 15px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-        border: 1px solid #dee2e6;
-    }
-    .pricing-card {
-        background: linear-gradient(135deg, #ffffff 0%, #f4f6f5 100%);
-        border: 2px solid #137547;
-        border-radius: 16px;
+    
+    .brand-logo-card {
+        background: linear-gradient(135deg, #022C19 0%, #054A29 50%, #0D1F17 100%);
+        border: 1px solid rgba(42, 157, 143, 0.3);
+        border-radius: 20px;
         padding: 24px;
         text-align: center;
-        box-shadow: 0 8px 16px rgba(0,0,0,0.08);
-    }
-    .pricing-card-vip {
-        background: linear-gradient(135deg, #054A29 0%, #137547 100%);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
         color: white;
-        border: 3px solid #FFD700;
-        border-radius: 16px;
-        padding: 24px;
-        text-align: center;
-        box-shadow: 0 12px 24px rgba(5,74,41,0.25);
     }
+    
+    .pricing-card-v2 {
+        background: #FFFFFF;
+        border: 2px solid #E2E8F0;
+        border-radius: 16px;
+        padding: 20px;
+        text-align: center;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    }
+    
+    .pricing-card-vip-v2 {
+        background: linear-gradient(145deg, #054A29 0%, #137547 100%);
+        color: white;
+        border: 2px solid #FFD700;
+        border-radius: 16px;
+        padding: 20px;
+        text-align: center;
+        box-shadow: 0 10px 25px rgba(5,74,41,0.25);
+    }
+    
+    .login-box-v2 {
+        background: #F8FAFC;
+        border: 1px solid #E2E8F0;
+        border-radius: 20px;
+        padding: 28px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.04);
+    }
+    
     .nav-box {
         background-color: #E8F5E9;
         border-left: 5px solid #137547;
@@ -75,10 +90,7 @@ COLUMNAS_HATO = [
     "Estado Salud"
 ]
 
-# --- INICIALIZACIÓN DE ESTADOS DE SESIÓN Y PASO PASO A PASO ---
-if "paso_actual" not in st.session_state:
-    st.session_state.paso_actual = 1  # 1: Planes, 2: Login/2FA, 3: App
-
+# --- INICIALIZACIÓN DE ESTADOS DE SESIÓN ---
 if "subscribed" not in st.session_state:
     st.session_state.subscribed = False
 if "plan_seleccionado" not in st.session_state:
@@ -107,107 +119,108 @@ if "df_hato" not in st.session_state:
 
 
 # =========================================================================
-# PASO 1: SUSCRIPCIÓN & PLANES (CON NAVEGACIÓN AMIGABLE)
+# ENCABEZADO Y BRANDING VANGUARDISTA
 # =========================================================================
-if not st.session_state.subscribed or st.session_state.paso_actual == 1:
-    st.progress(0.20)
-    st.markdown("""
-        <div class='nav-box'>
-            <h4 style='margin:0; color: #054A29;'>📌 Paso 1 de 3: Selección de Plan de Suscripción</h4>
-            <p style='margin:0; color: #555;'>Elige el plan que mejor se adapte a las necesidades de tu establo. Puedes cambiar o cancelar tu plan en cualquier momento.</p>
+st.markdown("""
+    <div class='brand-logo-card'>
+        <div style='font-size: 48px; line-height: 1; margin-bottom: 8px;'>🧬🐮⚡</div>
+        <div style='font-size: 28px; font-weight: 800; letter-spacing: 2px; color: #FFFFFF;'>LECHER-IA PRO</div>
+        <div style='font-size: 14px; font-weight: 500; color: #2A9D8F; margin-top: 4px; text-transform: none;'>
+            La plataforma de precisión bionutricional, control de hato y telemedicina más avanzada.
         </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown("<h1 style='text-align: center; color: #054A29;'>💎 Planes de Suscripción Lecher-IA Pro</h1>", unsafe_allow_html=True)
-    st.markdown("<br>", unsafe_allow_html=True)
-    
-    col_p1, col_p2, col_p3 = st.columns(3)
-    
-    with col_p1:
-        st.markdown("""
-            <div class='pricing-card'>
-                <h3 style='color: #054A29;'>Plan Trimestral</h3>
-                <h2 style='color: #333;'>3 Meses</h2>
-                <p style='color: #666;'>Ideal para prueba y evaluación de hatos medianos.</p>
-                <hr>
-                <h1 style='color: #137547;'>$1,495 <small style='font-size: 14px;'>MXN/mes</small></h1>
-                <p style='color: #888; font-size: 13px;'>Facturado cada 3 meses ($4,485 MXN total)</p>
-        """, unsafe_allow_html=True)
-        if st.button("Seleccionar Plan 3 Meses ➔", use_container_width=True):
-            st.session_state.subscribed = True
-            st.session_state.plan_seleccionado = "3 Meses"
-            st.session_state.paso_actual = 2
-            st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    with col_p2:
-        st.markdown("""
-            <div class='pricing-card'>
-                <h3 style='color: #054A29;'>Plan Semestral</h3>
-                <h2 style='color: #333;'>6 Meses</h2>
-                <p style='color: #666;'>Optimización continua y control estacional.</p>
-                <hr>
-                <h1 style='color: #137547;'>$1,195 <small style='font-size: 14px;'>MXN/mes</small></h1>
-                <p style='color: #888; font-size: 13px;'>Ahorras 20% ($7,170 MXN total)</p>
-        """, unsafe_allow_html=True)
-        if st.button("Seleccionar Plan 6 Meses ➔", use_container_width=True):
-            st.session_state.subscribed = True
-            st.session_state.plan_seleccionado = "6 Meses"
-            st.session_state.paso_actual = 2
-            st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    with col_p3:
-        st.markdown("""
-            <div class='pricing-card-vip'>
-                <div style='background-color: #FFD700; color: #054A29; font-weight: 800; font-size: 12px; padding: 4px 12px; border-radius: 20px; display: inline-block; margin-bottom: 8px;'>🔥 MÁS POPULAR & AHORRO MÁXIMO</div>
-                <h3 style='color: #FFFFFF;'>Plan Anual VIP</h3>
-                <h2 style='color: #FFD700;'>12 Meses</h2>
-                <p style='color: #E0E0E0;'>Acceso total ilimitado para 3,000 cabezas + Soporte 24/7 con el Dr. Alejandro Castañeda.</p>
-                <hr style='border-color: rgba(255,255,255,0.2);'>
-                <h1 style='color: #FFFFFF;'>$795 <small style='font-size: 14px; color: #FFD700;'>MXN/mes</small></h1>
-                <p style='color: #FFD700; font-size: 14px; font-weight: 700;'>¡Ahorras 47% ($9,540 MXN anuales)! Pagas $9,540 MXN único.</p>
-        """, unsafe_allow_html=True)
-        if st.button("🌟 SUSCRIBIRME 12 MESES Y CONTINUAR ➔", use_container_width=True):
-            st.session_state.subscribed = True
-            st.session_state.plan_seleccionado = "12 Meses VIP"
-            st.session_state.paso_actual = 2
-            st.balloons()
-            st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.info("💡 **Estrategia Nutri-ON & Lecher-IA:** El 85% de los productores eligen el **Plan Anual de 12 Meses** para congelar precios ante la inflación de materias primas y garantizar consistencia nutricional todo el año.")
-    st.stop()
-
-
-# =========================================================================
-# PASO 2: SEGURIDAD & AUTENTICACIÓN 2FA (CON NAVEGACIÓN "ATRÁS")
-# =========================================================================
-if st.session_state.paso_actual == 2 or (not st.session_state.two_fa_verified):
-    st.progress(0.60)
-    st.markdown(f"""
-        <div class='nav-box'>
-            <h4 style='margin:0; color: #054A29;'>🔐 Paso 2 de 3: Seguridad & Autenticación de Usuario</h4>
-            <p style='margin:0; color: #555;'>Plan Activo: <b>{st.session_state.plan_seleccionado}</b>. Ingresa tus credenciales y verifica el código de 2FA.</p>
+        <div style='font-size: 11px; font-weight: 700; color: #A0AEC0; margin-top: 10px; letter-spacing: 1px; text-transform: uppercase;'>
+            DESARROLLADA Y CREADA POR: DR. ALEJANDRO CASTAÑEDA CORREA
         </div>
-    """, unsafe_allow_html=True)
-    
-    col_nav1, col_nav2 = st.columns([1, 5])
-    with col_nav1:
-        if st.button("⬅️ Atrás (Cambiar Plan)"):
-            st.session_state.paso_actual = 1
-            st.session_state.subscribed = False
-            st.rerun()
+    </div>
+""", unsafe_allow_html=True)
 
-    col_l1, col_l2, col_l3 = st.columns([1, 1.5, 1])
-    with col_l2:
-        st.markdown("### 🔑 Credenciales & Doble Factor (2FA)")
+st.markdown("<br>", unsafe_allow_html=True)
+
+
+# =========================================================================
+# PÁGINA DE INICIO: PLANES DE SUSCRIPCIÓN Y LOGIN TOTALMENTE SEPARADOS
+# =========================================================================
+if not st.session_state.subscribed or not st.session_state.two_fa_verified:
+    
+    col_izq_planes, col_der_login = st.columns([1.8, 1.2], gap="large")
+    
+    # -------------------------------------------------------------
+    # COLUMNA IZQUIERDA: PLANES DE SUSCRIPCIÓN (3, 6, 12 MESES)
+    # -------------------------------------------------------------
+    with col_izq_planes:
+        st.markdown("<h3 style='color: #054A29; font-weight: 800;'>💎 1. Elige tu Plan de Suscripción</h3>", unsafe_allow_html=True)
+        st.caption("Selecciona el plan operativo para desbloquear el motor NASEM 2021 y control de hasta 3,000 cabezas.")
+        
+        c_p1, c_p2, c_p3 = st.columns(3)
+        
+        with c_p1:
+            st.markdown("""
+                <div class='pricing-card-v2'>
+                    <h4 style='color: #054A29; margin-bottom: 0;'>Trimestral</h4>
+                    <h2 style='color: #1A202C; margin-top: 5px;'>3 Meses</h2>
+                    <h2 style='color: #137547;'>$1,495 <small style='font-size: 11px;'>MXN/mes</small></h2>
+                    <p style='color: #718096; font-size: 11px;'>Factura: $4,485 MXN</p>
+            """, unsafe_allow_html=True)
+            if st.button("Elegir 3 Meses", key="btn_p3"):
+                st.session_state.subscribed = True
+                st.session_state.plan_seleccionado = "3 Meses"
+                st.success("Plan Trimestral Seleccionado")
+                st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        with c_p2:
+            st.markdown("""
+                <div class='pricing-card-v2'>
+                    <h4 style='color: #054A29; margin-bottom: 0;'>Semestral</h4>
+                    <h2 style='color: #1A202C; margin-top: 5px;'>6 Meses</h2>
+                    <h2 style='color: #137547;'>$1,195 <small style='font-size: 11px;'>MXN/mes</small></h2>
+                    <p style='color: #718096; font-size: 11px;'>Ahorro del 20%</p>
+            """, unsafe_allow_html=True)
+            if st.button("Elegir 6 Meses", key="btn_p6"):
+                st.session_state.subscribed = True
+                st.session_state.plan_seleccionado = "6 Meses"
+                st.success("Plan Semestral Seleccionado")
+                st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        with c_p3:
+            st.markdown("""
+                <div class='pricing-card-vip-v2'>
+                    <span style='background: #FFD700; color: #054A29; font-weight: 800; font-size: 9px; padding: 2px 8px; border-radius: 10px;'>MÁS POPULAR</span>
+                    <h4 style='color: #FFFFFF; margin-bottom: 0;'>Anual VIP</h4>
+                    <h2 style='color: #FFD700; margin-top: 5px;'>12 Meses</h2>
+                    <h2 style='color: #FFFFFF;'>$795 <small style='font-size: 11px; color: #FFD700;'>MXN/mes</small></h2>
+                    <p style='color: #FFD700; font-size: 11px; font-weight: 700;'>Ahorra 47% ($9,540 MXN/año)</p>
+            """, unsafe_allow_html=True)
+            if st.button("🌟 Elegir 12 Meses", key="btn_p12"):
+                st.session_state.subscribed = True
+                st.session_state.plan_seleccionado = "12 Meses VIP"
+                st.balloons()
+                st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.info("💡 **Incentivo de Suscripción Anual:** El 85% de los establos comerciales eligen el **Plan Anual de 12 Meses** para protegerse contra la inflación de materias primas y recibir soporte técnico directo todo el año.")
+
+    # -------------------------------------------------------------
+    # COLUMNA DERECHA: ACCESO DE USUARIO Y CONTRASEÑA / 2FA SEPARADO
+    # -------------------------------------------------------------
+    with col_der_login:
+        st.markdown("<h3 style='color: #054A29; font-weight: 800;'>🔐 2. Iniciar Sesión Segura</h3>", unsafe_allow_html=True)
+        
+        if st.session_state.plan_seleccionado:
+            st.success(f"✓ Plan Activo Seleccionado: **{st.session_state.plan_seleccionado}**")
+        else:
+            st.warning("⚠️ Selecciona un plan en la columna izquierda para activar la cuenta.")
+
+        st.markdown("<div class='login-box-v2'>", unsafe_allow_html=True)
+        
         if not st.session_state.logged_in:
-            with st.form("form_login"):
+            with st.form("form_login_v2"):
+                st.markdown("##### 🔑 Credenciales de Acceso")
                 usuario = st.text_input("Usuario / Correo Electrónico", value="admin")
                 password = st.text_input("Contraseña", type="password", value="lecheria2026")
-                btn_login = st.form_submit_button("Siguiente: Verificar 2FA ➔")
+                btn_login = st.form_submit_button("Validar Credenciales ➔", use_container_width=True)
                 
                 if btn_login:
                     if usuario == "admin" and password == "lecheria2026":
@@ -215,42 +228,45 @@ if st.session_state.paso_actual == 2 or (not st.session_state.two_fa_verified):
                         st.success("✅ Credenciales correctas.")
                         st.rerun()
                     else:
-                        st.error("❌ Usuario o contraseña incorrectos. (Prueba con: admin / lecheria2026)")
+                        st.error("❌ Credenciales incorrectas. (Prueba: admin / lecheria2026)")
         else:
-            st.success("🟢 Usuario autenticado correctamente.")
-            st.info("📱 Ingresa el código 2FA recibido en tu dispositivo (Código de prueba: **2026**).")
+            st.success("🟢 Usuario Autenticado.")
+            st.markdown("##### 📱 Doble Factor de Autenticación (2FA)")
+            st.caption("Ingresa el token de seguridad enviado a tu dispositivo.")
             
-            with st.form("form_2fa"):
+            with st.form("form_2fa_v2"):
                 codigo_2fa = st.text_input("Código 2FA (6 dígitos)", max_chars=6, value="2026")
-                btn_2fa = st.form_submit_button("🔒 Confirmar e Ingresar a la App ➔")
+                btn_2fa = st.form_submit_button("🔒 Ingresar a Lecher-IA Pro ➔", use_container_width=True)
                 
                 if btn_2fa:
-                    if codigo_2fa == "2026":
+                    if not st.session_state.subscribed:
+                        st.error("⚠️ Por favor selecciona primero un plan de suscripción en el panel izquierdo.")
+                    elif codigo_2fa == "2026":
                         st.session_state.two_fa_verified = True
-                        st.session_state.paso_actual = 3
-                        st.success("✅ ¡Autenticación completada!")
+                        st.success("✅ ¡Acceso Concedido!")
                         st.rerun()
                     else:
                         st.error("❌ Código 2FA inválido. Prueba con: 2026")
+                        
+        st.markdown("</div>", unsafe_allow_html=True)
+
     st.stop()
 
 
 # =========================================================================
-# PASO 3: APLICACIÓN PRINCIPAL (SUITE TOTAL CON ASISTENTE Y BOTONES DE NAVEGACIÓN)
+# APLICACIÓN PRINCIPAL (ACCESO CONCEDIDO LUEGO DE SUSCRIPCIÓN + LOGIN + 2FA)
 # =========================================================================
-st.progress(1.0)
+
 st.markdown(f"""
     <div class='nav-box'>
-        <h4 style='margin:0; color: #054A29;'>🚀 Paso 3 de 3: Plataforma Lecher-IA Pro Activa</h4>
-        <p style='margin:0; color: #555;'>Sesión Segura &bull; Plan: <b>{st.session_state.plan_seleccionado}</b> &bull; Utiliza el menú o navega con las guías internas.</p>
+        <h4 style='margin:0; color: #054A29;'>🚀 Sesión Enterprise Activa</h4>
+        <p style='margin:0; color: #555;'>Plan Suscrito: <b>{st.session_state.plan_seleccionado}</b> &bull; Capacidad: <b>3,000 Cabezas de Ganado</b></p>
     </div>
 """, unsafe_allow_html=True)
 
-# Botón para cerrar sesión o cambiar de plan sin salir de la app
 col_top1, col_top2 = st.columns([4, 1])
 with col_top2:
-    if st.button("🔄 Cambiar Plan / Cerrar Sesión"):
-        st.session_state.paso_actual = 1
+    if st.button("🔄 Cerrar Sesión / Cambiar Plan"):
         st.session_state.subscribed = False
         st.session_state.logged_in = False
         st.session_state.two_fa_verified = False
@@ -304,36 +320,6 @@ def generar_pdf_tmr_financiero(df_resultados, costo_alimento, cms_req, ecm, raza
     doc.build(story)
     buffer.seek(0)
     return buffer
-
-# --- ENCABEZADO Y BRANDING ---
-col_logo, col_titulo = st.columns([1.2, 4.8])
-
-with col_logo:
-    st.markdown(
-        """
-        <div style="
-            background: linear-gradient(135deg, #054A29 0%, #137547 50%, #2A9D8F 100%);
-            padding: 16px 12px;
-            border-radius: 16px;
-            text-align: center;
-            color: white;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-            border: 1px solid rgba(255,255,255,0.15);
-        ">
-            <span style="font-size: 38px; line-height: 1;">🧬🐮</span>
-            <div style="font-size: 15px; font-weight: 800; letter-spacing: 1.5px; margin-top: 4px; text-transform: uppercase;">LECHER-IA</div>
-            <div style="font-size: 9px; font-weight: 500; opacity: 0.85; letter-spacing: 0.8px;">ENTERPRISE PLF SUITE</div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-with col_titulo:
-    st.title("Lecher-IA Pro — Plataforma Integral Bionutricional & PLF")
-    st.markdown("<h4 style='color: #2A9D8F; margin-top: -15px; font-weight: 600;'>Gemelo Digital, Bluetooth TMR, Control de 3,000 Cabezas y Telemedicina.</h4>", unsafe_allow_html=True)
-    st.markdown(f"<small style='color: #666;'>Diseñada y creada por el <b>Dr. Alejandro Castañeda Correa</b>.</small>", unsafe_allow_html=True)
-
-st.markdown("---")
 
 # --- PANEL IZQUIERDO (SIDEBAR): PARÁMETROS DEL HATO ---
 st.sidebar.markdown("## 🧬 Parámetros del Hato & Producción")
@@ -752,9 +738,9 @@ with tab_telemed:
 st.markdown("---")
 st.markdown(
     """
-    <div style='text-align: center; color: gray; font-size: 12px;'>
-        <strong>Lecher-IA Pro</strong> &bull; Enterprise PLF Suite, Digital Twin & Telemedicine<br>
-        Designed and engineered by <strong>Dr. Alejandro Castañeda Correa</strong>.
+    <div style='text-align: center; color: gray; font-size: 11px;'>
+        <strong>LECHER-IA PRO</strong> &bull; Enterprise PLF Suite, Digital Twin & Telemedicine<br>
+        DESARROLLADA Y CREADA POR: DR. ALEJANDRO CASTAÑEDA CORREA
     </div>
     """, 
     unsafe_allow_html=True
